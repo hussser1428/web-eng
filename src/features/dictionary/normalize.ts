@@ -12,12 +12,36 @@ function push(out: string[], w: string) {
 export function candidateForms(input: string): string[] {
   const w = normalizeHeadword(input);
   const out: string[] = [];
-  push(out, w);
+
+  // Push base word unconditionally
+  if (w.length > 0) {
+    out.push(w);
+  } else {
+    return out; // Return empty array if normalized word is empty
+  }
+
   if (w.length < 4) return out;
 
   if (w.endsWith("ies")) push(out, w.slice(0, -3) + "y");
-  if (w.endsWith("es")) push(out, w.slice(0, -2));
-  if (w.endsWith("s") && !w.endsWith("ss")) push(out, w.slice(0, -1));
+
+  // Handle es/s rules with sibilant heuristic
+  if (w.endsWith("es") && !w.endsWith("ies")) {
+    const beforeEs = w.slice(0, -2);
+    const sibilantEndings = ["s", "x", "z", "ch", "sh"];
+    const endsWithSibilant = sibilantEndings.some(ending => beforeEs.endsWith(ending));
+
+    if (endsWithSibilant) {
+      // For boxes, watches, dishes: es-stem first
+      push(out, beforeEs);
+      push(out, w.slice(0, -1));
+    } else {
+      // For bees, trees, goes: s-stem first
+      push(out, w.slice(0, -1));
+      push(out, beforeEs);
+    }
+  } else if (w.endsWith("s") && !w.endsWith("ss")) {
+    push(out, w.slice(0, -1));
+  }
 
   if (w.endsWith("ied")) push(out, w.slice(0, -3) + "y");
   if (w.endsWith("ed")) {

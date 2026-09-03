@@ -32,4 +32,27 @@ describe("candidateForms", () => {
   it("từ ngắn không bị cắt vô nghĩa", () => {
     expect(candidateForms("is")).toEqual(["is"]);
   });
+  it("từ đơn ký tự trả về chính từ đó", () => {
+    expect(candidateForms("a")).toEqual(["a"]);
+    expect(candidateForms("I")).toEqual(["i"]);
+  });
+  it("từ chỉ có dấu câu trả về rỗng", () => {
+    expect(candidateForms("!!")).toEqual([]);
+  });
+  it("ưu tiên gốc đúng cho đuôi es", () => {
+    const beesForms = candidateForms("bees");
+    const beeIndex = beesForms.indexOf("bee");
+    const beIndex = beesForms.indexOf("be");
+    expect(beeIndex).toBeLessThan(beIndex);
+
+    const boxesForms = candidateForms("boxes");
+    const boxIndex = boxesForms.indexOf("box");
+    const boxeIndex = boxesForms.indexOf("boxe");
+    expect(boxIndex).toBeLessThan(boxeIndex);
+
+    expect(candidateForms("watches")).toContain("watch");
+    const watchesIndex = candidateForms("watches").indexOf("watch");
+    const watcheIndex = candidateForms("watches").indexOf("watche");
+    expect(watchesIndex).toBeLessThan(watcheIndex);
+  });
 });
