@@ -21,12 +21,13 @@ export function createLibreTranslate(opts: {
           body: JSON.stringify({ q: text, source: from, target: to, format: "text" }),
           signal: ctrl.signal,
         });
-        if (!res.ok) throw new Error("TRANSLATE_UNAVAILABLE");
+        if (!res.ok) throw new Error("TRANSLATE_UNAVAILABLE", { cause: new Error(`HTTP ${res.status}`) });
         const data = (await res.json()) as { translatedText?: string };
         if (typeof data.translatedText !== "string") throw new Error("TRANSLATE_UNAVAILABLE");
         return data.translatedText;
-      } catch {
-        throw new Error("TRANSLATE_UNAVAILABLE");
+      } catch (e) {
+        if (e instanceof Error && e.message === "TRANSLATE_UNAVAILABLE") throw e;
+        throw new Error("TRANSLATE_UNAVAILABLE", { cause: e });
       } finally {
         clearTimeout(timer);
       }
