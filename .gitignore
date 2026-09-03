@@ -43,3 +43,6 @@ next-env.d.ts
 
 # project
 .superpowers/
+
+# từ điển StarDict tải về (dùng cho prisma/seed/import-stardict.ts)
+/data/

@@ -34,7 +34,11 @@ export type ParsedEntry = {
 };
 
 export function parseEntry(text: string): ParsedEntry | null {
-  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  // Một số mục StarDict dùng ký tự CR đơn lẻ (không đi kèm LF) làm dấu ngắt mềm bên
+  // trong một dòng "-nghĩa" (ví dụ "zip code"). Thay các CR đơn lẻ này bằng khoảng
+  // trắng trước khi tách dòng, để không lẫn ký tự điều khiển vào dữ liệu lưu.
+  const normalized = text.replace(/\r(?!\n)/g, " ").replace(/[ \t]{2,}/g, " ");
+  const lines = normalized.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   const head = lines.find((l) => l.startsWith("@"));
   if (!head) return null;
 
@@ -49,9 +53,14 @@ export function parseEntry(text: string): ParsedEntry | null {
   let exampleVi: string | null = null;
 
   for (const l of lines) {
-    if (l.startsWith("* ") && pos === null) pos = l.slice(2).trim();
-    else if (l.startsWith("- ") && meanings.length < 3) meanings.push(l.slice(2).trim());
-    else if (l.startsWith("=") && exampleEn === null) {
+    if (l.startsWith("*") && pos === null) {
+      pos = l.slice(1).trim();
+    } else if (l.startsWith("-")) {
+      if (meanings.length < 3) {
+        const meaning = l.slice(1).trim();
+        if (meaning) meanings.push(meaning);
+      }
+    } else if (l.startsWith("=") && exampleEn === null) {
       const [en, vi] = l.slice(1).split("+");
       exampleEn = en.trim();
       exampleVi = vi?.trim() ?? null;

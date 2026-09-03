@@ -83,4 +83,71 @@ describe("parseEntry", () => {
     const t = "@x\n* n\n- a\n- b\n- c\n- d";
     expect(parseEntry(t)?.meaningVi).toBe("a; b; c");
   });
+
+  it("mẫu thực tế: abandon với '*  x' (2 khoảng trắng), '-x' không khoảng trắng, khối @Chuyên ngành", () => {
+    const text = `@abandon /ə'bændən/
+*  ngoại động từ
+- bộm (nhiếp ảnh) từ bỏ; bỏ rơi, ruồng bỏ
+=to abandon a hope+ từ bỏ hy vọng
+*  danh từ
+- sự phóng túng, sự tự do, sự buông thả
+@Chuyên ngành kinh tế
+-bỏ phế
+-từ bỏ
+@Chuyên ngành kỹ thuật
+-bỏ`;
+    const parsed = parseEntry(text);
+    expect(parsed?.pos).toBe("ngoại động từ");
+    expect(parsed?.meaningVi).toBe(
+      "bộm (nhiếp ảnh) từ bỏ; bỏ rơi, ruồng bỏ; sự phóng túng, sự tự do, sự buông thả; bỏ phế"
+    );
+    expect(parsed?.exampleEn).toBe("to abandon a hope");
+    expect(parsed?.exampleVi).toBe("từ bỏ hy vọng");
+  });
+
+  it("mẫu thực tế: 'zip code' với phonetic dạng [...] và '*danh từ' không khoảng trắng", () => {
+    const text = `@zip code ['zip'coud]
+*danh từ
+-  chỉ số bưu điện (để chọn thư cho nhanh)
+@Chuyên ngành kinh tế
+-mã hộp thư (ở Mỹ)`;
+    const parsed = parseEntry(text);
+    // Regex không đổi: phonetic dạng [...] không khớp /\/(.+?)\//, nên toàn bộ phần còn lại
+    // (kể cả dấu ngoặc vuông) rơi vào headword và phonetic ở lại null. Không sao vì script
+    // nhập luôn dùng normalizeHeadword(idxWord) làm headword thật, bỏ qua parsed.headword.
+    expect(parsed?.headword).toBe("zip code ['zip'coud]");
+    expect(parsed?.phonetic).toBeNull();
+    expect(parsed?.pos).toBe("danh từ");
+    expect(parsed?.meaningVi).toBe(
+      "chỉ số bưu điện (để chọn thư cho nhanh); mã hộp thư (ở Mỹ)"
+    );
+  });
+
+  it("mẫu thực tế: mục chỉ có dòng @Chuyên ngành (không có headword thật) vẫn parse được nghĩa; headword lấy từ dòng @ (sai) nhưng script sẽ ghi đè bằng từ trong idx", () => {
+    const text = `@Chuyên ngành kinh tế
+-giấy phép "A"
+-môn bài "A"`;
+    const parsed = parseEntry(text);
+    expect(parsed?.headword).toBe("Chuyên ngành kinh tế");
+    expect(parsed?.meaningVi).toBe('giấy phép "A"; môn bài "A"');
+  });
+
+  it("dòng '-x' không khoảng trắng được tính là nghĩa", () => {
+    const t = "@x\n* n\n-a\n-b";
+    expect(parseEntry(t)?.meaningVi).toBe("a; b");
+  });
+
+  it("dòng '*x' không khoảng trắng được tính là pos", () => {
+    const t = "@x\n*n\n- a";
+    expect(parseEntry(t)?.pos).toBe("n");
+  });
+
+  it("CR đơn lẻ (không phải \\r\\n) trong dòng nghĩa được thay bằng khoảng trắng, không lẫn vào dữ liệu", () => {
+    const t = "@zip code ['zip'coud]\n*danh từ\n-  chỉ số bưu điện (để chọn thư cho nhanh)\r ( viết-tắt của Zone Improvement Program Code )";
+    const parsed = parseEntry(t);
+    expect(parsed?.meaningVi).toBe(
+      "chỉ số bưu điện (để chọn thư cho nhanh) ( viết-tắt của Zone Improvement Program Code )"
+    );
+    expect(parsed?.meaningVi).not.toContain("\r");
+  });
 });
