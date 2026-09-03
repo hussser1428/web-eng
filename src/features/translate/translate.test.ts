@@ -34,7 +34,15 @@ describe("translateText", () => {
   it("cụm từ thì gọi provider và ghi cache", async () => {
     const r = await translateText(deps as never, "postpone the meeting");
     expect(r).toEqual({ kind: "text", from: "en", to: "vi", result: "[dịch] postpone the meeting" });
-    expect(deps.db.translationCache.create).toHaveBeenCalledOnce();
+    expect(deps.db.translationCache.create).toHaveBeenCalledWith({
+      data: {
+        key: cacheKey("postpone the meeting", "en", "vi"),
+        text: "postpone the meeting",
+        from: "en",
+        to: "vi",
+        result: "[dịch] postpone the meeting",
+      },
+    });
   });
 
   it("có cache thì không gọi provider", async () => {
@@ -59,5 +67,14 @@ describe("translateText", () => {
   it("cacheKey không phân biệt hoa thường và khoảng trắng hai đầu", () => {
     expect(cacheKey(" Hello ", "en", "vi")).toBe(cacheKey("hello", "en", "vi"));
     expect(cacheKey("hello", "en", "vi")).not.toBe(cacheKey("hello", "vi", "en"));
+  });
+
+  it("ghi cache thất bại thì vẫn trả bản dịch thành công", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    deps.db.translationCache.create.mockRejectedValueOnce(new Error("db down"));
+    const r = await translateText(deps as never, "some phrase here");
+    expect(r).toEqual({ kind: "text", from: "en", to: "vi", result: "[dịch] some phrase here" });
+    expect(deps.provider.translate).toHaveBeenCalledOnce();
+    console.warn.mockRestore();
   });
 });

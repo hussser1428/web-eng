@@ -36,11 +36,18 @@ export async function translateText(deps: TranslateDeps, rawText: string): Promi
   const cached = await deps.db.translationCache.findUnique({ where: { key } });
   if (cached) return { kind: "text", from, to, result: cached.result };
 
+  let result: string;
   try {
-    const result = await deps.provider.translate(text, from, to);
-    await deps.db.translationCache.create({ data: { key, text, from, to, result } });
-    return { kind: "text", from, to, result };
+    result = await deps.provider.translate(text, from, to);
   } catch {
     return { kind: "unavailable", from, to };
   }
+
+  try {
+    await deps.db.translationCache.create({ data: { key, text, from, to, result } });
+  } catch (e) {
+    console.warn("translationCache write failed", e);
+  }
+
+  return { kind: "text", from, to, result };
 }
