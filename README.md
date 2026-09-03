@@ -1,36 +1,27 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TOEIC Prep
 
-## Getting Started
+Web luyện thi TOEIC Listening & Reading, kèm từ điển bôi đen dịch, từ vựng ôn tập ngắt quãng, bài đọc song ngữ.
 
-First, run the development server:
+## Chạy lần đầu
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. `cp .env.example .env` và điền `AUTH_SECRET` (`openssl rand -base64 32`).
+2. `docker compose up -d` (Postgres và LibreTranslate; LibreTranslate tải model en/vi lần đầu vài phút).
+3. `npm install`
+4. `npx prisma migrate dev`
+5. Tải từ điển theo `prisma/seed/fixtures/README.md`, rồi `npm run db:import-dict -- data/star_anhviet`
+6. `npm run dev` và mở http://localhost:3000
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Docker
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+`docker compose up -d db` chỉ Postgres; `docker compose up -d libretranslate` chỉ LibreTranslate.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Lệnh
 
-## Learn More
+- `npm test` – unit test (Vitest)
+- `npm run build` – build production
+- `npm run db:studio` – xem database
 
-To learn more about Next.js, take a look at the following resources:
+## Tài liệu
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Thiết kế: `docs/superpowers/specs/`
+- Kế hoạch triển khai: `docs/superpowers/plans/`
