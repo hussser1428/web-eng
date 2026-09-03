@@ -9,6 +9,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.test.{ts,tsx}", "prisma/**/*.test.ts"],
+    passWithNoTests: true,
   },
   resolve: {
     alias: { "@": path.resolve(import.meta.dirname, "src") },
