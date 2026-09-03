@@ -24,6 +24,25 @@ describe("parseIdx", () => {
       { word: "ability", offset: 120, size: 50 },
     ]);
   });
+
+  it("bỏ qua mục bị cắt cụt ở cuối buffer", () => {
+    // Build valid idx for one entry, then append truncated entry
+    const validBuf = idxOf([
+      { word: "abandon", offset: 0, size: 120 },
+    ]);
+    // Append second word + NUL + only 3 bytes (instead of 8)
+    const truncatedEntry = Buffer.concat([
+      Buffer.from("ability"),
+      Buffer.from([0]),
+      Buffer.alloc(3), // Only 3 bytes instead of required 8
+    ]);
+    const buf = Buffer.concat([validBuf, truncatedEntry]);
+
+    // Should return only the first entry without throwing
+    expect(parseIdx(buf)).toEqual([
+      { word: "abandon", offset: 0, size: 120 },
+    ]);
+  });
 });
 
 describe("parseEntry", () => {

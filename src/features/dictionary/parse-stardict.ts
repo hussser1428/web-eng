@@ -9,6 +9,7 @@ export function parseIdx(buf: Buffer): IdxEntry[] {
   while (i < buf.length) {
     const end = buf.indexOf(0, i);
     if (end === -1) break;
+    if (end + 9 > buf.length) break;
     const word = buf.subarray(i, end).toString("utf8");
     const offset = buf.readUInt32BE(end + 1);
     const size = buf.readUInt32BE(end + 5);
