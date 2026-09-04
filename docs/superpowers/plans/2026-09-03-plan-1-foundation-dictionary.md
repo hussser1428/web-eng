@@ -2383,3 +2383,28 @@ Các kế hoạch tiếp theo (viết khi kế hoạch 1 xong):
 - Kế hoạch 5: đọc song ngữ (spec bước 6).
 - Kế hoạch 6: quản trị, tạo nội dung bằng AI, TTS, đề tự động (spec bước 7).
 - Kế hoạch 7: dữ liệu ban đầu (spec bước 8).
+
+---
+
+## Việc hoãn lại sau kế hoạch 1 (từ review toàn nhánh)
+
+Kế hoạch 1 đã xong và gộp. Những mục dưới đây được review phát hiện nhưng cố ý hoãn, cần xử lý ở kế hoạch sau.
+
+### Bắt buộc trước khi đưa web lên mạng công khai
+
+- **Giới hạn tần suất `/api/translate`.** API không cần đăng nhập và mỗi lần dịch hụt cache đều ghi thêm một dòng `TranslationCache`. Người lạ có thể gửi liên tục chuỗi 500 ký tự ngẫu nhiên làm nghẽn LibreTranslate và phình database. Cần token bucket theo IP (hoặc theo session khi có) và giới hạn kích thước cache (TTL hoặc dọn định kỳ).
+- **Ghim phiên bản image LibreTranslate** trong `docker-compose.yml` thay cho `:latest`.
+- **Chỉ đăng ký provider Google khi có `AUTH_GOOGLE_ID`**, và ẩn nút "Đăng nhập bằng Google" khi chưa cấu hình — hiện nút luôn hiện và bấm vào sẽ ra trang lỗi của Google.
+
+### Nên làm khi động vào phần liên quan
+
+- **Chống dò email theo thời gian phản hồi** trong `src/lib/auth.ts`: email không tồn tại trả về ngay, email có thật tốn khoảng 100ms cho bcrypt. So sánh với một hash giả cố định khi không tìm thấy user.
+- **Phiên âm dạng `[...]` bị bỏ qua** trong `parseEntry`: 1.403 trên 387.517 mục dùng ngoặc vuông. Sửa regex thành `(?:\s+(?:\/(.+?)\/|\[(.+?)\]))?` rồi nhập lại từ điển.
+- **Vai trò ADMIN chỉ nằm trong JWT**: nâng quyền một tài khoản chỉ có hiệu lực sau khi đăng xuất rồi đăng nhập lại. Cần lưu ý ở kế hoạch 7 (trang quản trị).
+- **Tách kiểu dùng chung ra khỏi `translate.ts`**: `PopupContent.tsx` import kiểu từ một module có `node:crypto` và Prisma. Hiện an toàn vì là import kiểu, nhưng nên chuyển `TranslateResult`/`WordDto` sang `types.ts` không có import runtime trước khi kế hoạch 4 và 5 dùng lại.
+- **`AuthError` nào cũng báo "Sai email hoặc mật khẩu"** trong `src/app/(auth)/actions.ts`: lỗi cấu hình cũng hiện thông báo này. Chỉ nên bắt `e.type === "CredentialsSignin"`, còn lại ghi log.
+- **Script nhập từ điển không đếm mục bị bỏ qua**: nên in số mục không parse được và số trùng để phát hiện hồi quy.
+- **Popup dịch**: chưa giới hạn vị trí theo chiều dọc (chọn chữ sát mép trên có thể đẩy popup ra ngoài màn hình), chưa đóng bằng phím Esc, và effect phụ thuộc vào định danh đối tượng `sel` nên bôi đen lại cùng một từ vẫn gọi API lần nữa.
+- **Cờ `created` của `saveWord` trong tình huống đua hiếm**: nếu Prisma biên dịch `upsert` thành `INSERT ... ON CONFLICT DO UPDATE`, bên thua cuộc đua sẽ không nhận `P2002` mà trả về `{created: true}` dù dòng đã tồn tại. Không gây lỗi 500 và không đụng tiến độ SM-2, nhưng nên kiểm tra bằng test tích hợp thật.
+- **Nhãn cho ô nhập ở trang đăng nhập/đăng ký**: hiện chỉ có `placeholder`, thiếu `<label>` hoặc `aria-label`.
+- **`@types/bcryptjs` thừa** (bcryptjs 3 đã kèm sẵn kiểu) — gỡ được.
