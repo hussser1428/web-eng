@@ -30,7 +30,8 @@ export function useSelection(): SelectionInfo | null {
       });
     };
 
-    const onUp = () => {
+    const onUp = (e: MouseEvent | TouchEvent) => {
+      if ((e.target as Element | null)?.closest?.("[data-translate-popup]")) return;
       if (timer) clearTimeout(timer);
       timer = setTimeout(read, 150);
     };

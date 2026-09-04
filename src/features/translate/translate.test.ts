@@ -70,11 +70,11 @@ describe("translateText", () => {
   });
 
   it("ghi cache thất bại thì vẫn trả bản dịch thành công", async () => {
-    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     deps.db.translationCache.create.mockRejectedValueOnce(new Error("db down"));
     const r = await translateText(deps as never, "some phrase here");
     expect(r).toEqual({ kind: "text", from: "en", to: "vi", result: "[dịch] some phrase here" });
     expect(deps.provider.translate).toHaveBeenCalledOnce();
-    console.warn.mockRestore();
+    warn.mockRestore();
   });
 });

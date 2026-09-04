@@ -11,6 +11,13 @@ export async function POST(req: Request) {
   if (!session?.user?.id) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   const parsed = bodySchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "INVALID" }, { status: 400 });
-  const r = await saveWord(prisma, { userId: session.user.id, wordId: parsed.data.wordId, sourceContext: parsed.data.context });
-  return NextResponse.json(r);
+  try {
+    const r = await saveWord(prisma, { userId: session.user.id, wordId: parsed.data.wordId, sourceContext: parsed.data.context });
+    return NextResponse.json(r);
+  } catch (e) {
+    if (typeof e === "object" && e !== null && "code" in e && e.code === "P2003") {
+      return NextResponse.json({ error: "WORD_NOT_FOUND" }, { status: 404 });
+    }
+    throw e;
+  }
 }

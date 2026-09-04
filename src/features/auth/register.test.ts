@@ -1,13 +1,15 @@
 import { describe, it, expect, vi } from "vitest";
 import { registerUser } from "./register";
 
+type CreateData = { email: string; passwordHash: string; role: string; name: string | null };
+
 function fakeDb(existing: { email: string }[] = []) {
   return {
     user: {
       findUnique: vi.fn(async ({ where }: { where: { email: string } }) =>
         existing.find((u) => u.email === where.email) ?? null
       ),
-      create: vi.fn(async ({ data }: { data: { email: string } }) => ({
+      create: vi.fn(async ({ data }: { data: CreateData }) => ({
         id: "u1",
         ...data,
       })),
@@ -46,5 +48,18 @@ describe("registerUser", () => {
       ok: false,
       error: "INVALID",
     });
+  });
+
+  it("race: findUnique không thấy nhưng create bị trùng (P2002) thì trả EMAIL_TAKEN", async () => {
+    const db = {
+      user: {
+        findUnique: vi.fn(async () => null),
+        create: vi.fn(async () => {
+          throw { code: "P2002" };
+        }),
+      },
+    };
+    const r = await registerUser(db as never, { email: "a@b.com", password: "abc12345" });
+    expect(r).toEqual({ ok: false, error: "EMAIL_TAKEN" });
   });
 });
