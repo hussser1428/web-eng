@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { loadDashboard, type DashboardDb } from "./load-dashboard";
+import { loadDashboard, HISTORY_LIMIT, type DashboardDb } from "./load-dashboard";
 
 const NOW = new Date("2026-09-05T10:00:00Z");
 
@@ -82,5 +82,23 @@ describe("loadDashboard", () => {
       chosen: { not: null },
       attempt: { userId: "u1", certificate: "toeic", submittedAt: { gte: new Date("2026-08-06T10:00:00Z") } },
     });
+  });
+
+  it("chỉ lấy lượt thi thử đã nộp của đúng người dùng, mới nhất trước, tối đa HISTORY_LIMIT lượt", async () => {
+    const db = fakeDb([], []);
+    await loadDashboard(db, { userId: "u1", certificate: "toeic", now: NOW });
+    const call = (
+      db.attempt.findMany as unknown as {
+        mock: { calls: [{ where: Record<string, unknown>; orderBy: unknown; take: unknown }][] };
+      }
+    ).mock.calls[0][0];
+    expect(call.where).toMatchObject({
+      userId: "u1",
+      certificate: "toeic",
+      type: "EXAM",
+      submittedAt: { not: null },
+    });
+    expect(call.orderBy).toEqual({ submittedAt: "desc" });
+    expect(call.take).toBe(HISTORY_LIMIT);
   });
 });
