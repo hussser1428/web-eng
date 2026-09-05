@@ -6,15 +6,17 @@ export type SessionDb = PickDueDb & DistractorDb;
 export type ReviewMode = "FLASHCARD" | "QUIZ";
 export type Direction = "EN_TO_VI" | "VI_TO_EN";
 
-export type QuizChoice = { id: string; text: string };
-
-/** Một câu trắc nghiệm gửi xuống client. Cố tình không có trường đáp án. */
+/**
+ * Một câu trắc nghiệm gửi xuống client. Cố tình không có trường đáp án và
+ * `choices` chỉ là chuỗi — không gắn id từ nguồn, vì lựa chọn đúng mà mang
+ * `id === wordId` thì mở DevTools là thấy. Server chấm bằng cách so chuỗi.
+ */
 export type QuizItem = {
   wordId: string;
   direction: Direction;
   prompt: string;
   phonetic: string | null;
-  choices: QuizChoice[];
+  choices: string[];
 };
 
 export type VocabSession =
@@ -35,13 +37,7 @@ function textOf(direction: Direction, w: { headword: string; meaningVi: string }
 }
 
 function buildQuizItem(word: DueWord, distractors: Distractor[], direction: Direction, rand: () => number): QuizItem {
-  const choices = shuffle(
-    [
-      { id: word.wordId, text: textOf(direction, word) },
-      ...distractors.map((d) => ({ id: d.id, text: textOf(direction, d) })),
-    ],
-    rand,
-  );
+  const choices = shuffle([textOf(direction, word), ...distractors.map((d) => textOf(direction, d))], rand);
   return {
     wordId: word.wordId,
     direction,

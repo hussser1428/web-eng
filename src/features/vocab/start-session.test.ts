@@ -46,7 +46,7 @@ describe("startVocabSession", () => {
     expect(db.word.findMany).not.toHaveBeenCalled();
   });
 
-  it("chế độ trắc nghiệm dựng bốn lựa chọn, đáp án đúng mang id của từ", async () => {
+  it("chế độ trắc nghiệm dựng bốn lựa chọn là chuỗi, đáp án đúng nằm trong đó", async () => {
     const db = {
       userWord: { findMany: vi.fn<(args: unknown) => Promise<UserWordRow[]>>(async () => [userWordRow("w1", "apple", "quả táo")]) },
       word: {
@@ -66,10 +66,26 @@ describe("startVocabSession", () => {
     expect(item.direction).toBe("EN_TO_VI");
     expect(item.prompt).toBe("apple");
     expect(item.choices).toHaveLength(4);
-    expect(item.choices.map((c) => c.text)).toContain("quả táo");
-    expect(item.choices.filter((c) => c.id === "w1")).toHaveLength(1);
-    // Không được lộ đáp án dưới bất kỳ tên trường nào
+    expect(item.choices).toContain("quả táo");
+    expect(new Set(item.choices).size).toBe(4);
+    // Không được lộ đáp án: lựa chọn chỉ là chuỗi, không mang id từ nguồn, không có trường answer
+    expect(item.choices.every((c) => typeof c === "string")).toBe(true);
     expect(JSON.stringify(item)).not.toContain("answer");
+    expect(JSON.stringify(item)).not.toContain("w2");
+  });
+
+  it("lỗi khác NOT_ENOUGH_WORDS thì lan truyền, không bị nuốt", async () => {
+    const db = {
+      userWord: { findMany: vi.fn<(args: unknown) => Promise<UserWordRow[]>>(async () => [userWordRow("w1", "apple", "quả táo")]) },
+      word: {
+        findMany: vi.fn<(args: unknown) => Promise<Distractor[]>>(async () => {
+          throw new Error("DB_DOWN");
+        }),
+      },
+    };
+    await expect(
+      startVocabSession(db as never, { userId: "u1", mode: "QUIZ", now: NOW, rand: randTu([0]) }),
+    ).rejects.toThrow("DB_DOWN");
   });
 
   it("chiều Việt sang Anh hỏi bằng nghĩa và không lộ phiên âm", async () => {
@@ -90,7 +106,7 @@ describe("startVocabSession", () => {
     expect(s.items[0].direction).toBe("VI_TO_EN");
     expect(s.items[0].prompt).toBe("quả táo");
     expect(s.items[0].phonetic).toBeNull();
-    expect(s.items[0].choices.map((c) => c.text)).toContain("apple");
+    expect(s.items[0].choices).toContain("apple");
   });
 
   it("từ không gom đủ nhiễu thì bị bỏ qua, phiên vẫn chạy với từ còn lại", async () => {
