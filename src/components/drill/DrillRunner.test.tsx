@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DrillRunner } from "./DrillRunner";
 import type { AttemptForClient } from "@/features/attempts/get-attempt";
@@ -63,6 +63,7 @@ describe("DrillRunner", () => {
   });
 
   it("thẻ audio reset khi sang câu tiếp (remount theo key)", async () => {
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(() => Promise.resolve());
     const attemptWithAudio: AttemptForClient = {
       ...attempt,
       questions: [
@@ -71,15 +72,24 @@ describe("DrillRunner", () => {
       ],
     };
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(json({ isCorrect: true, answer: 1, explanation: "GT1" }));
-    render(<DrillRunner attempt={attemptWithAudio} />);
+    const { container } = render(<DrillRunner attempt={attemptWithAudio} />);
 
-    expect(screen.getByRole("button", { name: "Phát audio" })).toBeEnabled();
+    // Bấm phát audio ở câu 1 rồi để nó "phát xong" — nút phải khoá lại
+    await userEvent.click(screen.getByRole("button", { name: "Phát audio" }));
+    const audioEl = container.querySelector("audio");
+    if (!audioEl) throw new Error("không tìm thấy phần tử audio");
+    fireEvent(audioEl, new Event("ended"));
+    expect(screen.getByRole("button", { name: "Phát audio" })).toBeDisabled();
+    expect(screen.getByText("Đã phát")).toBeInTheDocument();
+
+    // Trả lời câu 1 rồi sang câu 2 — thẻ audio của câu 2 phải là thẻ mới, chưa phát
     await userEvent.click(screen.getByRole("radio", { name: /B\./ }));
     await screen.findByText("GT1");
     await userEvent.click(screen.getByRole("button", { name: "Câu tiếp" }));
 
     expect(screen.getByText("Q2")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Phát audio" })).toBeEnabled();
+    expect(screen.getByText("Audio chỉ phát một lần.")).toBeInTheDocument();
   });
 
   it("đã trả lời hết câu nhưng chưa nộp → hiện thông báo và nút xem kết quả", async () => {
