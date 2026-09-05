@@ -22,6 +22,7 @@ npm run db:up            # chỉ Postgres (docker compose up -d db)
 npm run db:migrate       # prisma migrate dev
 npm run db:studio
 npm run db:import-dict -- data/star_anhviet   # nhập từ điển StarDict vào bảng Word
+npm run db:import-questions -- <file.json> [--exam "Tên"] [--draft]   # nhập câu hỏi/đề
 ```
 
 Node 22, npm (không dùng yarn/pnpm). `docker compose up -d` chạy cả Postgres lẫn LibreTranslate; LibreTranslate tải model en/vi lần đầu mất vài phút.
@@ -40,6 +41,8 @@ Next.js 15 App Router + TypeScript + Tailwind 4 + Prisma/PostgreSQL + Auth.js v5
 - `src/app/(auth)/actions.ts` — Server Actions cho đăng ký/đăng nhập, trả về chuỗi lỗi tiếng Việt cho `useActionState`.
 
 **Luồng popup dịch** (`src/components/translate-popup/`): `use-selection.ts` lắng nghe `mouseup`/`touchend` toàn document (debounce 150ms, bỏ qua target trong `[data-translate-popup]`, `input`/`textarea`, `[data-no-translate]`) → `TranslatePopup.tsx` POST `/api/translate` → `translateText()` quyết định: một từ tiếng Anh thì tra bảng `Word` (`kind: "word"`, kèm nút lưu), còn lại thì đọc `TranslationCache` rồi mới gọi LibreTranslate. Provider lỗi/timeout ⇒ `kind: "unavailable"`, không ném lỗi ra ngoài. Popup gắn ở `src/app/layout.tsx` nên có mặt trên mọi trang.
+
+**Chứng chỉ & làm bài:** quy tắc từng chứng chỉ (phần thi, số câu, thời gian, quy đổi điểm) là object `CertificateSpec` trong `src/features/certificates/<mã>.ts`; database chỉ lưu chuỗi `certificate` ("toeic") và `section` ("toeic.p5"). Một lượt làm bài = `Attempt` + các `AttemptAnswer` tạo sẵn lúc bắt đầu (`start-drill.ts`, `start-exam.ts`); drill chấm từng câu (`answer-drill.ts`), thi lưu đáp án hàng loạt (`save-exam-answers.ts`) rồi chấm khi nộp (`submit.ts`). DTO xuống client qua `questions/dto.ts` không bao giờ chứa `answer`/`explanation`. Route handler map mã lỗi bằng `src/lib/api-errors.ts`. Vùng thi có `data-no-translate`.
 
 **Xử lý lỗi:** hàm nghiệp vụ trả union result (`{ ok: false, error: "EMAIL_TAKEN" }`) hoặc ném `Error` với message dạng mã (`"EMPTY"`, `"TEXT_TOO_LONG"`, `"TRANSLATE_UNAVAILABLE"`); route handler dịch mã đó sang status. Lỗi Prisma bắt qua `Prisma.PrismaClientKnownRequestError` + `e.code` (`P2002` trùng, `P2003` khoá ngoại sai).
 

@@ -10,6 +10,20 @@ Web luyện thi TOEIC Listening & Reading, kèm từ điển bôi đen dịch, t
 4. `npx prisma migrate dev`
 5. Tải từ điển theo `prisma/seed/fixtures/README.md`, rồi `npm run db:import-dict -- data/star_anhviet`
 6. `npm run dev` và mở http://localhost:3000
+7. Luyện tập: `/drill` → Part 5 → 10 câu
+8. Thi thử: `/exam` → Đề rút gọn 1 → làm → Nộp bài → xem điểm
+
+## Nhập câu hỏi và đề thi
+
+Câu hỏi nằm trong file JSON (xem mẫu `prisma/seed/fixtures/questions-sample.json`, định dạng mô tả trong `src/features/questions/import-schema.ts`).
+
+```bash
+npm run db:import-questions -- prisma/seed/fixtures/questions-sample.json --exam "Đề rút gọn 1"
+# --draft: nhập ở trạng thái DRAFT (chưa hiện cho người dùng)
+# không có --exam: chỉ nhập câu cho luyện tập
+```
+
+Đề đầy đủ TOEIC cần 200 câu theo cấu trúc trong `src/features/certificates/toeic.ts`; đề ít câu hơn vẫn chạy được và được ghi "đề rút gọn".
 
 ## Docker
 
