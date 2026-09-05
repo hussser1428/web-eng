@@ -20,4 +20,10 @@ describe("ProgressSparkline", () => {
     render(<ProgressSparkline points={[p("a1", 500), p("a2", 500)]} />);
     expect(screen.getByText(/chưa đổi/)).toBeInTheDocument();
   });
+
+  it("điểm đi xuống thì báo giảm bao nhiêu điểm", () => {
+    render(<ProgressSparkline points={[p("a1", 620), p("a2", 500)]} />);
+    expect(screen.getByText(/giảm 120 điểm/)).toBeInTheDocument();
+    expect(screen.queryByText(/tăng/)).not.toBeInTheDocument();
+  });
 });
