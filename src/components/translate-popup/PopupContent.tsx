@@ -2,17 +2,10 @@
 
 import type { TranslateResult } from "@/features/translate/translate";
 import { Volume2 } from "lucide-react";
+import { speak } from "@/lib/speak";
 
 export type PopupData = TranslateResult & { canSave: boolean };
 export type SaveState = "idle" | "saving" | "saved" | "error";
-
-function speak(text: string) {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = "en-US";
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(u);
-}
 
 export function PopupContent({
   data,
