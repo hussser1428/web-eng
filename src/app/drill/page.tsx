@@ -7,9 +7,10 @@ import { DrillSetupForm } from "@/components/drill/DrillSetupForm";
 
 export const metadata: Metadata = { title: "Luyện tập" };
 
-export default async function DrillPage() {
+export default async function DrillPage({ searchParams }: { searchParams: Promise<{ section?: string; tag?: string }> }) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
+  const sp = await searchParams;
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
       <header>
@@ -19,7 +20,11 @@ export default async function DrillPage() {
         </h1>
         <p className="mt-2 text-muted">Chọn phần và số câu. Sau mỗi câu bạn thấy ngay đáp án và giải thích. Câu chưa làm và câu làm sai được ưu tiên.</p>
       </header>
-      <DrillSetupForm sections={TOEIC.sections.map((s) => ({ id: s.id, name: s.name }))} />
+      <DrillSetupForm
+        sections={TOEIC.sections.map((s) => ({ id: s.id, name: s.name }))}
+        defaultSection={sp.section}
+        defaultTag={sp.tag}
+      />
     </div>
   );
 }
