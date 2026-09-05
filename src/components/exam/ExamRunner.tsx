@@ -33,18 +33,27 @@ export function ExamRunner({ attempt, sections, timeLimits }: Props) {
   const listeningQs = qs.filter((q) => skillOf.get(q.section) === "listening");
   const readingQs = qs.filter((q) => skillOf.get(q.section) !== "listening");
 
-  // Đáp án: server trước, localStorage ghi đè (client mới hơn)
+  // Khởi tạo CHỈ từ dữ liệu server để HTML server và render client đầu tiên giống nhau.
   const [answers, setAnswers] = useState<Record<string, number>>(() => {
     const fromServer: Record<string, number> = {};
     for (const q of qs) if (q.chosen !== null) fromServer[q.id] = q.chosen;
-    return { ...fromServer, ...readJson<Record<string, number>>(K.answers, {}) };
+    return fromServer;
   });
-  const [flags, setFlags] = useState<string[]>(() => readJson<string[]>(K.flags, []));
-  const [readingStartedAt, setReadingStartedAt] = useState<number | null>(() => {
+  const [flags, setFlags] = useState<string[]>([]);
+  const [readingStartedAt, setReadingStartedAt] = useState<number | null>(
+    () => (listeningQs.length === 0 ? new Date(attempt.startedAt).getTime() : null),
+  );
+  const [hydrated, setHydrated] = useState(false);
+
+  // Sau khi mount mới đọc localStorage: bản lưu ở client mới hơn nên ghi đè dữ liệu server.
+  useEffect(() => {
+    setAnswers((fromServer) => ({ ...fromServer, ...readJson<Record<string, number>>(K.answers, {}) }));
+    setFlags(readJson<string[]>(K.flags, []));
     const saved = readJson<number | null>(K.reading, null);
-    if (saved) return saved;
-    return listeningQs.length === 0 ? new Date(attempt.startedAt).getTime() : null;
-  });
+    if (saved) setReadingStartedAt(saved);
+    setHydrated(true);
+  }, [K]);
+
   const phase: "listening" | "reading" = readingStartedAt === null ? "listening" : "reading";
   const visible = phase === "listening" ? listeningQs : readingQs;
 
@@ -109,6 +118,9 @@ export function ExamRunner({ attempt, sections, timeLimits }: Props) {
     const msg = unanswered > 0 ? `Còn ${unanswered} câu chưa trả lời. Nộp bài ngay?` : "Nộp bài ngay?";
     if (window.confirm(msg)) void submit();
   }
+
+  // Chưa đọc xong localStorage thì giữ chỗ trung tính, tránh nhấp nháy nội dung sai.
+  if (!hydrated) return <div className="card p-5 text-muted">Đang tải đề…</div>;
 
   const q = visible[idx];
   if (!q) return <p className="text-muted">Đề này không có câu hỏi.</p>;

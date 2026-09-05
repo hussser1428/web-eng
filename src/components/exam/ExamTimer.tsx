@@ -10,7 +10,8 @@ function fmt(ms: number) {
 }
 
 export function ExamTimer({ deadline, onExpire }: Props) {
-  const [left, setLeft] = useState(() => deadline - Date.now());
+  // null = chưa biết. Không đọc Date.now() lúc khởi tạo để server và client render giống nhau.
+  const [left, setLeft] = useState<number | null>(null);
   const fired = useRef(false);
 
   useEffect(() => {
@@ -27,10 +28,10 @@ export function ExamTimer({ deadline, onExpire }: Props) {
     return () => clearInterval(id);
   }, [deadline, onExpire]);
 
-  const warn = left < 5 * 60_000;
+  const warn = left !== null && left < 5 * 60_000;
   return (
     <span role="timer" aria-live="off" className={`font-mono text-2xl font-bold tabular-nums ${warn ? "text-neon-pink" : "text-neon-cyan"}`}>
-      {fmt(left)}
+      {left === null ? "--:--" : fmt(left)}
     </span>
   );
 }

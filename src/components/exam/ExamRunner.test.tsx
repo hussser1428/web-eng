@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ExamRunner } from "./ExamRunner";
 import { TOEIC } from "@/features/certificates";
@@ -23,6 +23,7 @@ function json(body: unknown, status = 200) {
 
 describe("ExamRunner (đề chỉ có phần đọc)", () => {
   beforeEach(() => { localStorage.clear(); push.mockReset(); vi.restoreAllMocks(); });
+  afterEach(() => vi.useRealTimers());
 
   it("hiện đồng hồ và câu 1; chọn đáp án lưu vào localStorage; chuyển câu bằng bảng số", async () => {
     render(<ExamRunner attempt={attempt} sections={TOEIC.sections} timeLimits={TOEIC.timeLimits} />);
@@ -63,5 +64,48 @@ describe("ExamRunner (đề chỉ có phần đọc)", () => {
   it("vùng làm bài có data-no-translate", () => {
     const { container } = render(<ExamRunner attempt={attempt} sections={TOEIC.sections} timeLimits={TOEIC.timeLimits} />);
     expect(container.querySelector("[data-no-translate]")).not.toBeNull();
+  });
+
+  it("hết giờ thì tự nộp bài", async () => {
+    vi.useFakeTimers();
+    const start = new Date("2026-09-05T08:00:00Z");
+    vi.setSystemTime(start);
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(json({ correct: 0, total: 3, scores: { parts: {}, total: 5 }, overtime: false }));
+    render(<ExamRunner attempt={{ ...attempt, startedAt: start.toISOString() }} sections={TOEIC.sections} timeLimits={TOEIC.timeLimits} />);
+    expect(fetchMock.mock.calls.some((c) => String(c[0]).endsWith("/submit"))).toBe(false);
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(TOEIC.timeLimits.reading * 60_000 + 2_000); });
+
+    const submitCall = fetchMock.mock.calls.find((c) => String(c[0]).endsWith("/submit"));
+    expect(submitCall?.[0]).toBe("/api/attempts/a1/submit");
+    expect(submitCall?.[1]?.method).toBe("POST");
+  });
+});
+
+describe("ExamRunner (đề có cả phần nghe và phần đọc)", () => {
+  const mixed: AttemptForClient = {
+    ...attempt,
+    id: "a2",
+    questions: [q("l1", "toeic.p1", 1), q("l2", "toeic.p2", 2), q("r1", "toeic.p5", 3)],
+  };
+
+  beforeEach(() => { localStorage.clear(); push.mockReset(); vi.restoreAllMocks(); });
+
+  it("bắt đầu ở phần nghe rồi chuyển sang phần đọc, lưu mốc bắt đầu phần đọc", async () => {
+    render(<ExamRunner attempt={mixed} sections={TOEIC.sections} timeLimits={TOEIC.timeLimits} />);
+    expect(screen.getByText("Phần nghe")).toBeInTheDocument();
+    expect(screen.getByText("Câu l1")).toBeInTheDocument();
+    expect(screen.queryByRole("timer")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Tới câu 3" })).toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: "Câu tiếp" }));
+    expect(screen.getByText("Câu l2")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Chuyển sang phần đọc" }));
+
+    expect(screen.getByText("Phần đọc")).toBeInTheDocument();
+    expect(screen.getByText("Câu r1")).toBeInTheDocument();
+    expect(screen.queryByText("Câu l1")).toBeNull();
+    expect(screen.getByRole("timer")).toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem("attempt:a2:readingStartedAt")!)).toBeGreaterThan(0);
   });
 });
