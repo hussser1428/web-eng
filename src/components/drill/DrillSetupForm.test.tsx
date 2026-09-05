@@ -29,4 +29,27 @@ describe("DrillSetupForm", () => {
     expect(await screen.findByText(/chưa có câu hỏi/i)).toBeInTheDocument();
     expect(push).not.toHaveBeenCalled();
   });
+
+  it("có defaultSection và defaultTag → chọn sẵn phần đó và gửi kèm kỹ năng", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ attemptId: "a9", count: 10 }), { status: 200 }));
+    render(<DrillSetupForm sections={sections} defaultSection="toeic.p7" defaultTag="suy luận" />);
+    expect(screen.getByRole("radio", { name: /Part 7/ })).toHaveAttribute("aria-checked", "true");
+    await userEvent.click(screen.getByRole("button", { name: "Bắt đầu luyện" }));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/drill/a9"));
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({ section: "toeic.p7", count: 10, skillTags: ["suy luận"] });
+  });
+
+  it("bỏ lọc kỹ năng thì không gửi skillTags nữa", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ attemptId: "a9", count: 10 }), { status: 200 }));
+    render(<DrillSetupForm sections={sections} defaultSection="toeic.p7" defaultTag="suy luận" />);
+    await userEvent.click(screen.getByRole("button", { name: "Bỏ lọc kỹ năng" }));
+    await userEvent.click(screen.getByRole("button", { name: "Bắt đầu luyện" }));
+    await waitFor(() => expect(push).toHaveBeenCalled());
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({ section: "toeic.p7", count: 10 });
+  });
+
+  it("defaultSection không có trong danh sách thì rơi về phần đầu tiên", () => {
+    render(<DrillSetupForm sections={sections} defaultSection="toeic.p99" />);
+    expect(screen.getByRole("radio", { name: /Part 5/ })).toHaveAttribute("aria-checked", "true");
+  });
 });
