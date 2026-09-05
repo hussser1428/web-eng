@@ -84,7 +84,7 @@ Mọi task đều phải tuân thủ các điều dưới đây; phần **Yêu c
 
 **Yêu cầu:** Đúng công thức SM-2 chuẩn như spec mục 6: `easeFactor` mới `= EF + (0.1 - (5-q) * (0.08 + (5-q) * 0.02))`, không bao giờ xuống dưới 1.3. Chất lượng dưới 3 thì đặt lại `repetitions = 0` và `intervalDays = 1`. Từ 3 trở lên thì `repetitions` tăng 1, khoảng cách lần một là 1 ngày, lần hai là 6 ngày, từ lần ba trở đi là `round(intervalDays cũ * easeFactor mới)`.
 
-- [ ] **Bước 1: Viết test thất bại**
+- [x] **Bước 1: Viết test thất bại**
 
 Tạo `src/features/vocab/sm2.test.ts`:
 
@@ -154,12 +154,12 @@ describe("addDays", () => {
 });
 ```
 
-- [ ] **Bước 2: Chạy test để chắc chắn nó thất bại**
+- [x] **Bước 2: Chạy test để chắc chắn nó thất bại**
 
 Chạy: `npm test -- src/features/vocab/sm2.test.ts`
 Mong đợi: FAIL, báo không tìm thấy module `./sm2`.
 
-- [ ] **Bước 3: Viết code tối thiểu cho test xanh**
+- [x] **Bước 3: Viết code tối thiểu cho test xanh**
 
 Tạo `src/features/vocab/sm2.ts`:
 
@@ -204,12 +204,12 @@ export function addDays(from: Date, days: number): Date {
 }
 ```
 
-- [ ] **Bước 4: Chạy test để chắc chắn nó xanh**
+- [x] **Bước 4: Chạy test để chắc chắn nó xanh**
 
 Chạy: `npm test -- src/features/vocab/sm2.test.ts`
 Mong đợi: PASS, 9 test.
 
-- [ ] **Bước 5: Kiểm tra toàn bộ rồi commit**
+- [x] **Bước 5: Kiểm tra toàn bộ rồi commit**
 
 ```bash
 npm test && npm run typecheck && npm run lint
@@ -235,7 +235,7 @@ git commit -m "feat: hàm thuần SM-2 cho ôn từ ngắt quãng"
 
 **Yêu cầu:** Lấy tối đa `SESSION_SIZE` từ có `dueAt <= now`, sắp `dueAt` tăng dần (quá hạn lâu nhất lên trước). Không còn từ nào đến hạn thì truy vấn lần hai không lọc `dueAt`, lấy các từ sắp đến hạn nhất, và trả `early: true` để giao diện báo "bạn đang ôn sớm". Người chưa lưu từ nào thì trả mảng rỗng với `early: true`.
 
-- [ ] **Bước 1: Viết test thất bại**
+- [x] **Bước 1: Viết test thất bại**
 
 Tạo `src/features/vocab/pick-due.test.ts`:
 
@@ -301,12 +301,12 @@ describe("pickDueWords", () => {
 });
 ```
 
-- [ ] **Bước 2: Chạy test để chắc chắn nó thất bại**
+- [x] **Bước 2: Chạy test để chắc chắn nó thất bại**
 
 Chạy: `npm test -- src/features/vocab/pick-due.test.ts`
 Mong đợi: FAIL, không tìm thấy module `./pick-due`.
 
-- [ ] **Bước 3: Viết code tối thiểu cho test xanh**
+- [x] **Bước 3: Viết code tối thiểu cho test xanh**
 
 Tạo `src/features/vocab/pick-due.ts`:
 
@@ -375,12 +375,12 @@ export async function pickDueWords(
 }
 ```
 
-- [ ] **Bước 4: Chạy test để chắc chắn nó xanh**
+- [x] **Bước 4: Chạy test để chắc chắn nó xanh**
 
 Chạy: `npm test -- src/features/vocab/pick-due.test.ts`
 Mong đợi: PASS, 4 test.
 
-- [ ] **Bước 5: Kiểm tra toàn bộ rồi commit**
+- [x] **Bước 5: Kiểm tra toàn bộ rồi commit**
 
 ```bash
 npm test && npm run typecheck && npm run lint
@@ -407,7 +407,7 @@ git commit -m "feat: chọn từ đến hạn cho phiên ôn, hết hạn thì c
 
 **Quy tắc ôn sớm** (quyết định số 3 ở đầu kế hoạch): nếu `dueAt` cũ vẫn ở tương lai thì người dùng đang ôn sớm — lấy mốc **sớm hơn** giữa lịch cũ và lịch vừa tính. Nhờ vậy trả lời đúng khi ôn sớm không đẩy lịch ra xa thêm, còn trả lời sai vẫn kéo được từ về ôn lại ngày mai. Khi từ đã thật sự đến hạn (`dueAt` cũ nằm trong quá khứ) thì dùng thẳng lịch mới.
 
-- [ ] **Bước 1: Viết test thất bại**
+- [x] **Bước 1: Viết test thất bại**
 
 Tạo `src/features/vocab/review-word.test.ts`:
 
@@ -479,12 +479,12 @@ describe("reviewWord", () => {
 });
 ```
 
-- [ ] **Bước 2: Chạy test để chắc chắn nó thất bại**
+- [x] **Bước 2: Chạy test để chắc chắn nó thất bại**
 
 Chạy: `npm test -- src/features/vocab/review-word.test.ts`
 Mong đợi: FAIL, không tìm thấy module `./review-word`.
 
-- [ ] **Bước 3: Viết code tối thiểu cho test xanh**
+- [x] **Bước 3: Viết code tối thiểu cho test xanh**
 
 Tạo `src/features/vocab/review-word.ts`:
 
@@ -527,12 +527,12 @@ export async function reviewWord(
 }
 ```
 
-- [ ] **Bước 4: Chạy test để chắc chắn nó xanh**
+- [x] **Bước 4: Chạy test để chắc chắn nó xanh**
 
 Chạy: `npm test -- src/features/vocab/review-word.test.ts`
 Mong đợi: PASS, 5 test.
 
-- [ ] **Bước 5: Kiểm tra toàn bộ rồi commit**
+- [x] **Bước 5: Kiểm tra toàn bộ rồi commit**
 
 ```bash
 npm test && npm run typecheck && npm run lint
@@ -564,7 +564,7 @@ git commit -m "feat: chấm thẻ theo SM-2, ôn sớm không đẩy lịch xa t
 
 **Yêu cầu:** Tìm kiếm khớp cả `headword` lẫn `meaningVi`, không phân biệt hoa thường (`mode: "insensitive"`). Chuỗi tìm rỗng hoặc chỉ khoảng trắng thì coi như không lọc. Trang bắt đầu từ 1; trang nhỏ hơn 1 bị kẹp về 1. Xoá dùng `deleteMany` kèm `userId` để không ai xoá được từ của người khác, và trả `removed: false` khi không có dòng nào bị xoá.
 
-- [ ] **Bước 1: Viết test thất bại**
+- [x] **Bước 1: Viết test thất bại**
 
 Tạo `src/features/vocab/list-words.test.ts`:
 
@@ -687,12 +687,12 @@ describe("countDueWords", () => {
 });
 ```
 
-- [ ] **Bước 2: Chạy test để chắc chắn nó thất bại**
+- [x] **Bước 2: Chạy test để chắc chắn nó thất bại**
 
 Chạy: `npm test -- src/features/vocab/list-words.test.ts src/features/vocab/remove-word.test.ts src/features/vocab/count-due.test.ts`
 Mong đợi: FAIL, không tìm thấy ba module mới.
 
-- [ ] **Bước 3: Viết code tối thiểu cho test xanh**
+- [x] **Bước 3: Viết code tối thiểu cho test xanh**
 
 Tạo `src/features/vocab/list-words.ts`:
 
@@ -807,12 +807,12 @@ export async function countDueWords(db: CountDb, p: { userId: string; now?: Date
 }
 ```
 
-- [ ] **Bước 4: Chạy test để chắc chắn nó xanh**
+- [x] **Bước 4: Chạy test để chắc chắn nó xanh**
 
 Chạy: `npm test -- src/features/vocab/list-words.test.ts src/features/vocab/remove-word.test.ts src/features/vocab/count-due.test.ts`
 Mong đợi: PASS, 8 test.
 
-- [ ] **Bước 5: Kiểm tra toàn bộ rồi commit**
+- [x] **Bước 5: Kiểm tra toàn bộ rồi commit**
 
 ```bash
 npm test && npm run typecheck && npm run lint
@@ -838,7 +838,7 @@ git commit -m "feat: danh sách, tìm, xoá và đếm từ đã lưu"
 
 **Yêu cầu (spec mục 6):** Đáp án nhiễu phải cùng `pos` với đáp án đúng, khác `id`, và **không trùng `meaningVi`** với đáp án đúng lẫn với nhiễu khác — nếu không câu hỏi sẽ có hai đáp án đều đúng. Ưu tiên từ người dùng cũng đã lưu (`userWords: { some: { userId } }`) vì nhiễu quen mắt thì khó hơn; thiếu thì lấy thêm từ bảng `Word` chung. Từ không có `pos` thì bỏ điều kiện `pos`. Không gom đủ số nhiễu thì ném `Error("NOT_ENOUGH_WORDS")`.
 
-- [ ] **Bước 1: Viết test thất bại**
+- [x] **Bước 1: Viết test thất bại**
 
 Tạo `src/features/vocab/pick-distractors.test.ts`:
 
@@ -920,12 +920,12 @@ describe("pickDistractors", () => {
 });
 ```
 
-- [ ] **Bước 2: Chạy test để chắc chắn nó thất bại**
+- [x] **Bước 2: Chạy test để chắc chắn nó thất bại**
 
 Chạy: `npm test -- src/features/vocab/pick-distractors.test.ts`
 Mong đợi: FAIL, không tìm thấy module `./pick-distractors`.
 
-- [ ] **Bước 3: Viết code tối thiểu cho test xanh**
+- [x] **Bước 3: Viết code tối thiểu cho test xanh**
 
 Tạo `src/features/vocab/pick-distractors.ts`:
 
@@ -990,12 +990,12 @@ export async function pickDistractors(
 }
 ```
 
-- [ ] **Bước 4: Chạy test để chắc chắn nó xanh**
+- [x] **Bước 4: Chạy test để chắc chắn nó xanh**
 
 Chạy: `npm test -- src/features/vocab/pick-distractors.test.ts`
 Mong đợi: PASS, 6 test.
 
-- [ ] **Bước 5: Kiểm tra toàn bộ rồi commit**
+- [x] **Bước 5: Kiểm tra toàn bộ rồi commit**
 
 ```bash
 npm test && npm run typecheck && npm run lint
@@ -1028,7 +1028,7 @@ git commit -m "feat: sinh đáp án nhiễu cùng loại từ, khác nghĩa, ưu
 - **Không gửi đáp án xuống client.** `choices` là bốn chuỗi đã trộn theo `rand` — giống DTO đề thi `questions/dto.ts` chỉ gửi `choices` là chuỗi. Server chấm bằng cách so chuỗi người dùng chọn với `meaningVi`/`headword` thật của từ (Task 7). Client có `wordId` nhưng không có API nào tra được nghĩa theo id, nên payload không lộ đáp án. **Không** gắn `id` của từ nguồn vào từng lựa chọn: lựa chọn đúng mà mang `id === wordId` thì mở DevTools là thấy.
 - Từ nào không gom đủ nhiễu (`pickDistractors` ném `NOT_ENOUGH_WORDS`) thì **bỏ qua từ đó**, phiên vẫn chạy với các từ còn lại. Có từ để ôn nhưng không dựng được câu nào thì ném `Error("NOT_ENOUGH_WORDS")`. Sổ tay rỗng thì trả phiên rỗng, không ném lỗi.
 
-- [ ] **Bước 1: Viết test thất bại**
+- [x] **Bước 1: Viết test thất bại**
 
 Tạo `src/features/vocab/start-session.test.ts`:
 
@@ -1174,12 +1174,12 @@ describe("startVocabSession", () => {
 });
 ```
 
-- [ ] **Bước 2: Chạy test để chắc chắn nó thất bại**
+- [x] **Bước 2: Chạy test để chắc chắn nó thất bại**
 
 Chạy: `npm test -- src/features/vocab/start-session.test.ts`
 Mong đợi: FAIL, không tìm thấy module `./start-session`.
 
-- [ ] **Bước 3: Viết code tối thiểu cho test xanh**
+- [x] **Bước 3: Viết code tối thiểu cho test xanh**
 
 Tạo `src/features/vocab/start-session.ts`:
 
@@ -1268,12 +1268,12 @@ export async function startVocabSession(
 }
 ```
 
-- [ ] **Bước 4: Chạy test để chắc chắn nó xanh**
+- [x] **Bước 4: Chạy test để chắc chắn nó xanh**
 
 Chạy: `npm test -- src/features/vocab/start-session.test.ts`
 Mong đợi: PASS, 7 test.
 
-- [ ] **Bước 5: Kiểm tra toàn bộ rồi commit**
+- [x] **Bước 5: Kiểm tra toàn bộ rồi commit**
 
 ```bash
 npm test && npm run typecheck && npm run lint
@@ -1298,7 +1298,7 @@ git commit -m "feat: dựng phiên ôn thẻ và phiên trắc nghiệm hai chi�
 
 **Yêu cầu:** Đáp án đúng là `meaningVi` của từ khi chiều `EN_TO_VI`, là `headword` khi chiều `VI_TO_EN`. Đúng khi chuỗi `chosen` người dùng gửi lên bằng đúng chuỗi đó — server tự tra từ nên client không bao giờ cầm đáp án. Đúng thì chấm `QUALITY.QUIZ_CORRECT` (4), sai thì `QUALITY.QUIZ_WRONG` (1); giá trị 1 khiến `reviewSm2` tự đặt lại `intervalDays = 1` và `repetitions = 0`, đúng như spec mục 4.4 yêu cầu. Trả về chữ của đáp án đúng để client tô màu. Từ không tồn tại thì ném `Error("NOT_FOUND")`.
 
-- [ ] **Bước 1: Viết test thất bại**
+- [x] **Bước 1: Viết test thất bại**
 
 Tạo `src/features/vocab/answer-quiz.test.ts`:
 
@@ -1380,12 +1380,12 @@ describe("answerQuizWord", () => {
 });
 ```
 
-- [ ] **Bước 2: Chạy test để chắc chắn nó thất bại**
+- [x] **Bước 2: Chạy test để chắc chắn nó thất bại**
 
 Chạy: `npm test -- src/features/vocab/answer-quiz.test.ts`
 Mong đợi: FAIL, không tìm thấy module `./answer-quiz`.
 
-- [ ] **Bước 3: Viết code tối thiểu cho test xanh**
+- [x] **Bước 3: Viết code tối thiểu cho test xanh**
 
 Tạo `src/features/vocab/answer-quiz.ts`:
 
@@ -1424,12 +1424,12 @@ export async function answerQuizWord(
 }
 ```
 
-- [ ] **Bước 4: Chạy test để chắc chắn nó xanh**
+- [x] **Bước 4: Chạy test để chắc chắn nó xanh**
 
 Chạy: `npm test -- src/features/vocab/answer-quiz.test.ts`
 Mong đợi: PASS, 6 test.
 
-- [ ] **Bước 5: Kiểm tra toàn bộ rồi commit**
+- [x] **Bước 5: Kiểm tra toàn bộ rồi commit**
 
 ```bash
 npm test && npm run typecheck && npm run lint
@@ -1460,7 +1460,7 @@ git commit -m "feat: chấm câu trắc nghiệm từ vựng và cập nhật SM
 
 Đường dẫn xoá đặt ở `saved/[wordId]` chứ không phải `[wordId]` để không nằm cùng cấp với route tĩnh `/api/vocab/save` đã có.
 
-- [ ] **Bước 1: Viết test thất bại**
+- [x] **Bước 1: Viết test thất bại**
 
 Tạo `src/app/api/vocab/review/route.test.ts`:
 
@@ -1569,12 +1569,12 @@ describe("POST /api/vocab/quiz", () => {
 });
 ```
 
-- [ ] **Bước 2: Chạy test để chắc chắn nó thất bại**
+- [x] **Bước 2: Chạy test để chắc chắn nó thất bại**
 
 Chạy: `npm test -- src/app/api/vocab`
 Mong đợi: FAIL, không tìm thấy hai module `./route`.
 
-- [ ] **Bước 3: Viết code tối thiểu cho test xanh**
+- [x] **Bước 3: Viết code tối thiểu cho test xanh**
 
 Sửa `src/lib/api-errors.ts`, thêm một dòng vào bảng `STATUS` ngay dưới `NOT_ENOUGH_QUESTIONS: 409,`:
 
@@ -1674,12 +1674,12 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ word
 }
 ```
 
-- [ ] **Bước 4: Chạy test để chắc chắn nó xanh**
+- [x] **Bước 4: Chạy test để chắc chắn nó xanh**
 
 Chạy: `npm test -- src/app/api/vocab`
 Mong đợi: PASS, 9 test mới cộng 2 test cũ của `save/route.test.ts`.
 
-- [ ] **Bước 5: Kiểm tra toàn bộ rồi commit**
+- [x] **Bước 5: Kiểm tra toàn bộ rồi commit**
 
 ```bash
 npm test && npm run typecheck && npm run lint
@@ -1707,7 +1707,7 @@ git commit -m "feat: route chấm thẻ, chấm trắc nghiệm và xoá từ đ
 
 **Yêu cầu:** `VocabList` là client component. Mốc "bây giờ" do trang server truyền xuống qua prop `now` (chuỗi ISO) để lần render trên server và trên trình duyệt ra cùng một chữ. Ô tìm là `<form>` gửi bằng `router.push("/vocab?q=...")`; xoá thì gọi `fetch(..., { method: "DELETE" })` rồi `router.refresh()`. Danh sách rỗng thì hướng dẫn người dùng cách lưu từ. Phân trang chỉ hiện khi `total > pageSize`.
 
-- [ ] **Bước 1: Viết test thất bại**
+- [x] **Bước 1: Viết test thất bại**
 
 Tạo `src/components/vocab/due-label.test.ts`:
 
@@ -1810,12 +1810,12 @@ describe("VocabList", () => {
 });
 ```
 
-- [ ] **Bước 2: Chạy test để chắc chắn nó thất bại**
+- [x] **Bước 2: Chạy test để chắc chắn nó thất bại**
 
 Chạy: `npm test -- src/components/vocab`
 Mong đợi: FAIL, không tìm thấy `./due-label` và `./VocabList`.
 
-- [ ] **Bước 3: Viết code tối thiểu cho test xanh**
+- [x] **Bước 3: Viết code tối thiểu cho test xanh**
 
 Tạo `src/components/vocab/due-label.ts`:
 
@@ -2033,12 +2033,12 @@ export default async function VocabPage({ searchParams }: { searchParams: Promis
 }
 ```
 
-- [ ] **Bước 4: Chạy test để chắc chắn nó xanh**
+- [x] **Bước 4: Chạy test để chắc chắn nó xanh**
 
 Chạy: `npm test -- src/components/vocab`
 Mong đợi: PASS, 10 test.
 
-- [ ] **Bước 5: Kiểm tra toàn bộ rồi commit**
+- [x] **Bước 5: Kiểm tra toàn bộ rồi commit**
 
 ```bash
 npm test && npm run typecheck && npm run lint
@@ -2067,7 +2067,7 @@ git commit -m "feat: trang sổ tay từ vựng với tìm kiếm, xoá và phâ
 
 Hàm `speak` đang nằm cục bộ trong `PopupContent.tsx`; tách sang `src/lib/speak.ts` để hai chỗ dùng chung — đây là phần sửa có chủ ý, không phải refactor lan man.
 
-- [ ] **Bước 1: Viết test thất bại**
+- [x] **Bước 1: Viết test thất bại**
 
 Tạo `src/components/vocab/FlashcardSession.test.tsx`:
 
@@ -2160,12 +2160,12 @@ describe("FlashcardSession", () => {
 });
 ```
 
-- [ ] **Bước 2: Chạy test để chắc chắn nó thất bại**
+- [x] **Bước 2: Chạy test để chắc chắn nó thất bại**
 
 Chạy: `npm test -- src/components/vocab/FlashcardSession.test.tsx`
 Mong đợi: FAIL, không tìm thấy `./FlashcardSession`.
 
-- [ ] **Bước 3: Viết code tối thiểu cho test xanh**
+- [x] **Bước 3: Viết code tối thiểu cho test xanh**
 
 Tạo `src/lib/speak.ts`:
 
@@ -2341,12 +2341,12 @@ export default async function FlashcardPage() {
 }
 ```
 
-- [ ] **Bước 4: Chạy test để chắc chắn nó xanh**
+- [x] **Bước 4: Chạy test để chắc chắn nó xanh**
 
 Chạy: `npm test -- src/components/vocab src/components/translate-popup`
 Mong đợi: PASS, 7 test mới; các test cũ của popup dịch vẫn xanh.
 
-- [ ] **Bước 5: Kiểm tra toàn bộ rồi commit**
+- [x] **Bước 5: Kiểm tra toàn bộ rồi commit**
 
 ```bash
 npm test && npm run typecheck && npm run lint
@@ -2371,7 +2371,7 @@ git commit -m "feat: phiên ôn thẻ với tự đánh giá quên/khó/dễ"
 
 Trang server bắt `NOT_ENOUGH_WORDS` từ `startVocabSession` và hiện lời nhắc thay vì để lỗi 500 hắt ra.
 
-- [ ] **Bước 1: Viết test thất bại**
+- [x] **Bước 1: Viết test thất bại**
 
 Tạo `src/components/vocab/QuizSession.test.tsx`:
 
@@ -2456,12 +2456,12 @@ describe("QuizSession", () => {
 });
 ```
 
-- [ ] **Bước 2: Chạy test để chắc chắn nó thất bại**
+- [x] **Bước 2: Chạy test để chắc chắn nó thất bại**
 
 Chạy: `npm test -- src/components/vocab/QuizSession.test.tsx`
 Mong đợi: FAIL, không tìm thấy `./QuizSession`.
 
-- [ ] **Bước 3: Viết code tối thiểu cho test xanh**
+- [x] **Bước 3: Viết code tối thiểu cho test xanh**
 
 Tạo `src/components/vocab/QuizSession.tsx`:
 
@@ -2636,12 +2636,12 @@ export default async function QuizPage() {
 }
 ```
 
-- [ ] **Bước 4: Chạy test để chắc chắn nó xanh**
+- [x] **Bước 4: Chạy test để chắc chắn nó xanh**
 
 Chạy: `npm test -- src/components/vocab/QuizSession.test.tsx`
 Mong đợi: PASS, 7 test.
 
-- [ ] **Bước 5: Kiểm tra toàn bộ rồi commit**
+- [x] **Bước 5: Kiểm tra toàn bộ rồi commit**
 
 ```bash
 npm test && npm run typecheck && npm run lint
@@ -2672,7 +2672,7 @@ git commit -m "feat: phiên trắc nghiệm từ vựng hai chiều Anh-Việt"
 
 Trong `DashboardView`, đặt `DueWordsCard` cạnh `SuggestionList` thành một hàng ba cột: gợi ý chiếm hai cột, thẻ từ vựng một cột.
 
-- [ ] **Bước 1: Viết test thất bại**
+- [x] **Bước 1: Viết test thất bại**
 
 Tạo `src/components/dashboard/DueWordsCard.test.tsx`:
 
@@ -2733,12 +2733,12 @@ it("hiện thẻ từ vựng đến hạn", () => {
 });
 ```
 
-- [ ] **Bước 2: Chạy test để chắc chắn nó thất bại**
+- [x] **Bước 2: Chạy test để chắc chắn nó thất bại**
 
 Chạy: `npm test -- src/features/stats src/components/dashboard`
 Mong đợi: FAIL — không tìm thấy `./DueWordsCard`, và `r.vocab` là `undefined`.
 
-- [ ] **Bước 3: Viết code tối thiểu cho test xanh**
+- [x] **Bước 3: Viết code tối thiểu cho test xanh**
 
 Trong `src/features/stats/load-dashboard.ts`:
 
@@ -2830,12 +2830,12 @@ rồi thay dòng `<SuggestionList suggestions={data.suggestions} />` bằng:
       </div>
 ```
 
-- [ ] **Bước 4: Chạy test để chắc chắn nó xanh**
+- [x] **Bước 4: Chạy test để chắc chắn nó xanh**
 
 Chạy: `npm test -- src/features/stats src/components/dashboard`
 Mong đợi: PASS, 5 test mới cộng toàn bộ test cũ của dashboard.
 
-- [ ] **Bước 5: Kiểm tra toàn bộ rồi commit**
+- [x] **Bước 5: Kiểm tra toàn bộ rồi commit**
 
 ```bash
 npm test && npm run typecheck && npm run lint
@@ -2857,7 +2857,7 @@ git commit -m "feat: dashboard hiện số từ đến hạn ôn"
 
 **Yêu cầu:** README bổ sung cách dùng tính năng từ vựng; CLAUDE.md bổ sung một đoạn kiến trúc để phiên làm việc sau nắm được luồng SM-2 mà không phải đọc lại toàn bộ code.
 
-- [ ] **Bước 1: Sửa README.md**
+- [x] **Bước 1: Sửa README.md**
 
 Trong mục "Chạy lần đầu", thêm hai dòng sau dòng bắt đầu bằng `8. Thi thử:`:
 
@@ -2878,7 +2878,7 @@ Hết từ đến hạn vẫn ôn được — gọi là **ôn sớm**. Ôn sớ
 Trắc nghiệm cần từ điển đủ dày: mỗi câu phải tìm được ba từ khác cùng loại từ và khác nghĩa. Sổ tay quá ít từ hoặc chưa nhập từ điển StarDict thì trang trắc nghiệm sẽ mời chuyển sang ôn thẻ.
 ```
 
-- [ ] **Bước 2: Sửa CLAUDE.md**
+- [x] **Bước 2: Sửa CLAUDE.md**
 
 Trong mục "Kiến trúc", thêm một đoạn ngay sau đoạn bắt đầu bằng `**Chứng chỉ & làm bài:**`:
 
@@ -2886,7 +2886,7 @@ Trong mục "Kiến trúc", thêm một đoạn ngay sau đoạn bắt đầu b�
 **Từ vựng và SM-2:** `src/features/vocab/sm2.ts` là hàm thuần duy nhất biết công thức SM-2 — không chạm database, không đọc đồng hồ. `review-word.ts` mới là chỗ quy `intervalDays` ra mốc `dueAt` và áp quy tắc ôn sớm (dueAt cũ còn ở tương lai thì lấy mốc sớm hơn giữa lịch cũ và lịch mới). Sửa công thức thì sửa `sm2.ts`, sửa cách hẹn lịch thì sửa `review-word.ts`. Phiên ôn dựng sẵn một lần bằng `start-session.ts` rồi trang server truyền thẳng xuống component client. Câu trắc nghiệm **không gửi đáp án xuống client**: `choices` chỉ là mảng chuỗi (không gắn `id` từ nguồn — nếu gắn thì lựa chọn đúng có `id === wordId`, mở DevTools là thấy), client gửi lên chuỗi đã chọn, server tra từ rồi so với `meaningVi`/`headword` thật trong `answer-quiz.ts`. Bảng `VocabQuizAnswer` trong spec cố tình chưa dựng — SM-2 cập nhật thẳng trên `UserWord`.
 ```
 
-- [ ] **Bước 3: Kiểm tra toàn bộ rồi commit**
+- [x] **Bước 3: Kiểm tra toàn bộ rồi commit**
 
 ```bash
 npm test && npm run typecheck && npm run lint
