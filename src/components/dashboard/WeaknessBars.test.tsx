@@ -20,4 +20,25 @@ describe("WeaknessBars", () => {
     render(<WeaknessBars title="Theo kỹ năng" items={[]} emptyText="Chưa đủ dữ liệu." />);
     expect(screen.getByText("Chưa đủ dữ liệu.")).toBeInTheDocument();
   });
+
+  it("tô màu thanh theo đúng ba dải tỉ lệ, chạm cả hai điểm chuyển 0.5 và 0.75", () => {
+    const colorItems = [
+      { key: "a", label: "Mốc 0", correct: 0, total: 4, rate: 0 },
+      { key: "b", label: "Mốc dưới 0.5", correct: 1, total: 4, rate: 0.25 },
+      { key: "c", label: "Mốc 0.5", correct: 2, total: 4, rate: 0.5 },
+      { key: "d", label: "Mốc giữa 0.5 và 0.75", correct: 5, total: 8, rate: 0.6 },
+      { key: "e", label: "Mốc 0.75", correct: 3, total: 4, rate: 0.75 },
+      { key: "f", label: "Mốc 1", correct: 4, total: 4, rate: 1 },
+    ];
+    render(<WeaknessBars title="Kiểm màu" items={colorItems} emptyText="Chưa có dữ liệu." />);
+
+    const bar = (label: string, pct: number) => screen.getByRole("img", { name: `${label}: đúng ${pct} phần trăm` }).firstElementChild;
+
+    expect(bar("Mốc 0", 0)).toHaveClass("bg-danger");
+    expect(bar("Mốc dưới 0.5", 25)).toHaveClass("bg-danger");
+    expect(bar("Mốc 0.5", 50)).toHaveClass("bg-accent");
+    expect(bar("Mốc giữa 0.5 và 0.75", 60)).toHaveClass("bg-accent");
+    expect(bar("Mốc 0.75", 75)).toHaveClass("bg-emerald-400");
+    expect(bar("Mốc 1", 100)).toHaveClass("bg-emerald-400");
+  });
 });
