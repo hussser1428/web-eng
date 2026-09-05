@@ -8,5 +8,5 @@ export const metadata: Metadata = { title: "Quản trị" };
 export default async function AdminPage() {
   const session = await auth();
   if (session?.user?.role !== "ADMIN") redirect("/");
-  return <ComingSoon title="Quản trị" description="Duyệt câu hỏi, đề thi và bài đọc." />;
+  return <ComingSoon emoji="🛠️" title="Quản trị" description="Duyệt câu hỏi, đề thi và bài đọc." />;
 }

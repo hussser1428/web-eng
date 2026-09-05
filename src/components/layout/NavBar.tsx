@@ -28,8 +28,10 @@ export function NavBar({ user, signOutAction }: Props) {
   const links = user?.role === "ADMIN" ? [...MAIN_LINKS, { href: "/admin", label: "Quản trị" }] : MAIN_LINKS;
 
   const linkClass = (href: string) =>
-    `rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-      isActive(pathname, href) ? "bg-blue-800 text-white" : "text-blue-100 hover:bg-blue-600 hover:text-white"
+    `relative rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+      isActive(pathname, href)
+        ? "bg-white/10 text-white after:absolute after:inset-x-4 after:-bottom-0.5 after:h-0.5 after:rounded-full after:bg-gradient-to-r after:from-neon-violet after:to-neon-cyan"
+        : "text-muted hover:bg-white/5 hover:text-white"
     }`;
 
   const navLinks = links.map((l) => (
@@ -40,27 +42,29 @@ export function NavBar({ user, signOutAction }: Props) {
 
   const account = user ? (
     <>
-      <span className="truncate text-sm text-blue-100" title={user.email}>{user.name || user.email}</span>
+      <span className="truncate text-sm text-muted" title={user.email}>{user.name || user.email}</span>
       <form action={signOutAction}>
-        <button className="rounded-md border border-blue-300 px-3 py-1.5 text-sm text-white hover:bg-blue-600">Đăng xuất</button>
+        <button className="rounded-full border border-line px-4 py-1.5 text-sm font-medium text-foreground hover:bg-white/5">Đăng xuất</button>
       </form>
     </>
   ) : (
     <>
-      <Link href="/login" className="rounded-md px-3 py-1.5 text-sm text-white hover:bg-blue-600">Đăng nhập</Link>
-      <Link href="/register" className="rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-blue-700 hover:bg-blue-50">Đăng ký</Link>
+      <Link href="/login" className="rounded-full px-4 py-1.5 text-sm font-medium text-foreground hover:bg-white/5">Đăng nhập</Link>
+      <Link href="/register" className="btn-neon rounded-full px-4 py-1.5 text-sm font-semibold">Đăng ký</Link>
     </>
   );
 
   return (
-    <header className="bg-blue-700 text-white shadow-md" data-no-translate>
+    <header className="sticky top-0 z-40 border-b border-line bg-background/70 backdrop-blur-md" data-no-translate>
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3" aria-label="Điều hướng chính">
-        <Link href="/" className="text-lg font-bold tracking-tight">TOEIC Prep</Link>
+        <Link href="/" className="text-xl font-extrabold tracking-tight">
+          <span className="text-neon">TOEIC</span> Prep
+        </Link>
         <div className="hidden items-center gap-1 md:flex">{navLinks}</div>
         <div className="hidden items-center gap-3 md:flex">{account}</div>
         <button
           type="button"
-          className="rounded-md p-2 hover:bg-blue-600 md:hidden"
+          className="rounded-full p-2 hover:bg-white/10 md:hidden"
           aria-label={open ? "Đóng menu" : "Mở menu"}
           aria-expanded={open}
           onClick={() => setOpen((o) => !o)}
@@ -71,9 +75,9 @@ export function NavBar({ user, signOutAction }: Props) {
         </button>
       </nav>
       {open && (
-        <div className="border-t border-blue-600 px-4 pb-4 md:hidden">
+        <div className="border-t border-line px-4 pb-4 md:hidden">
           <div className="flex flex-col gap-1 py-2">{navLinks}</div>
-          <div className="flex items-center gap-3 border-t border-blue-600 pt-3">{account}</div>
+          <div className="flex items-center gap-3 border-t border-line pt-3">{account}</div>
         </div>
       )}
     </header>

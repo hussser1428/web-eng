@@ -1,19 +1,23 @@
 import Link from "next/link";
 
-type Props = { title: string; description: string };
+type Props = { title: string; description: string; emoji?: string };
 
-export function ComingSoon({ title, description }: Props) {
+export function ComingSoon({ title, description, emoji = "🚧" }: Props) {
   return (
-    <section className="mx-auto max-w-lg rounded-xl border border-blue-100 bg-white p-8 text-center shadow-sm">
-      <span className="inline-block rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-800">
-        Sắp có
-      </span>
-      <h1 className="mt-4 text-2xl font-bold text-slate-900">{title}</h1>
-      <p className="mt-2 text-slate-600">{description}</p>
-      <p className="mt-1 text-sm text-slate-500">Tính năng này đang được xây dựng.</p>
-      <Link href="/" className="mt-6 inline-block rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">
-        Về trang chủ
-      </Link>
+    <section className="card relative mx-auto max-w-lg overflow-hidden p-8 text-center">
+      <div className="glow -top-16 left-1/2 h-40 w-40 -translate-x-1/2 bg-neon-violet" />
+      <div className="relative">
+        <div className="text-5xl" aria-hidden="true">{emoji}</div>
+        <span className="mt-4 inline-block rounded-full border border-neon-cyan/40 bg-neon-cyan/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-neon-cyan">
+          Sắp có
+        </span>
+        <h1 className="mt-3 text-3xl font-extrabold">{title}</h1>
+        <p className="mt-2 text-muted">{description}</p>
+        <p className="mt-1 text-sm text-muted/70">Tính năng này đang được xây dựng.</p>
+        <Link href="/" className="btn-neon mt-6 inline-block rounded-full px-5 py-2 text-sm font-semibold">
+          Về trang chủ
+        </Link>
+      </div>
     </section>
   );
 }

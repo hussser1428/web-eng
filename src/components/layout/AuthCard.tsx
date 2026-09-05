@@ -1,15 +1,22 @@
-type Props = { title: string; children: React.ReactNode };
+type Props = { title: string; subtitle?: string; children: React.ReactNode };
 
-export function AuthCard({ title, children }: Props) {
+export function AuthCard({ title, subtitle, children }: Props) {
   return (
-    <div className="mx-auto max-w-sm rounded-xl border border-slate-200 bg-white p-6 shadow-sm" data-no-translate>
-      <h1 className="mb-5 text-2xl font-bold text-slate-900">{title}</h1>
-      {children}
+    <div className="relative mx-auto max-w-sm" data-no-translate>
+      <div className="glow -top-10 -left-10 h-40 w-40 bg-neon-violet" />
+      <div className="glow -right-10 -bottom-10 h-40 w-40 bg-neon-cyan" />
+      <div className="card relative p-7">
+        <h1 className="text-3xl font-extrabold">{title}</h1>
+        {subtitle && <p className="mt-1 mb-5 text-sm text-muted">{subtitle}</p>}
+        {!subtitle && <div className="mb-5" />}
+        {children}
+      </div>
     </div>
   );
 }
 
-export const inputClass = "w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200";
-export const labelClass = "text-sm font-medium text-slate-700";
-export const primaryButtonClass = "w-full rounded-md bg-blue-700 px-4 py-2 font-semibold text-white hover:bg-blue-800 disabled:opacity-50";
-export const secondaryButtonClass = "w-full rounded-md border border-slate-300 px-4 py-2 font-medium text-slate-700 hover:bg-slate-50";
+export const inputClass =
+  "w-full rounded-xl border border-line bg-surface-2 px-3 py-2.5 text-foreground placeholder:text-muted/60 focus:border-neon-violet focus:outline-none focus:ring-2 focus:ring-neon-violet/40";
+export const labelClass = "text-sm font-medium text-muted";
+export const primaryButtonClass = "btn-neon w-full rounded-xl px-4 py-2.5 font-bold disabled:opacity-50";
+export const secondaryButtonClass = "w-full rounded-xl border border-line px-4 py-2.5 font-medium text-foreground hover:bg-white/5";

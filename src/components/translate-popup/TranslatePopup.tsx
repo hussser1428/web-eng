@@ -62,9 +62,9 @@ export function TranslatePopup() {
       role="dialog"
       aria-label="Dịch"
       style={{ position: "absolute", left, top, width: POPUP_WIDTH, transform: "translateY(-100%)" }}
-      className="z-50 rounded-lg border bg-white p-3 shadow-lg"
+      className="z-50 rounded-2xl border border-line bg-surface p-3 text-foreground shadow-[0_8px_40px_rgba(0,0,0,0.5)]"
     >
-      {loading || !data ? <p className="text-sm text-gray-500">Đang dịch…</p> : <PopupContent data={data} context={sel.context} onSave={onSave} saveState={saveState} />}
+      {loading || !data ? <p className="text-sm text-muted">Đang dịch…</p> : <PopupContent data={data} context={sel.context} onSave={onSave} saveState={saveState} />}
     </div>
   );
 }
