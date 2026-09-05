@@ -61,4 +61,43 @@ describe("DrillRunner", () => {
     await userEvent.click(screen.getByRole("radio", { name: /A\./ }));
     expect(await screen.findByText(/không gửi được/i)).toBeInTheDocument();
   });
+
+  it("thẻ audio reset khi sang câu tiếp (remount theo key)", async () => {
+    const attemptWithAudio: AttemptForClient = {
+      ...attempt,
+      questions: [
+        { ...attempt.questions[0], audioUrl: "https://example.com/a.mp3" },
+        { ...attempt.questions[1], audioUrl: "https://example.com/b.mp3" },
+      ],
+    };
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(json({ isCorrect: true, answer: 1, explanation: "GT1" }));
+    render(<DrillRunner attempt={attemptWithAudio} />);
+
+    expect(screen.getByRole("button", { name: "Phát audio" })).toBeEnabled();
+    await userEvent.click(screen.getByRole("radio", { name: /B\./ }));
+    await screen.findByText("GT1");
+    await userEvent.click(screen.getByRole("button", { name: "Câu tiếp" }));
+
+    expect(screen.getByText("Q2")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Phát audio" })).toBeEnabled();
+  });
+
+  it("đã trả lời hết câu nhưng chưa nộp → hiện thông báo và nút xem kết quả", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(json({ correct: 1, total: 2, scores: null, overtime: false }));
+    const answeredAttempt: AttemptForClient = {
+      ...attempt,
+      questions: [
+        { ...attempt.questions[0], chosen: 1 },
+        { ...attempt.questions[1], chosen: 0 },
+      ],
+    };
+    render(<DrillRunner attempt={answeredAttempt} />);
+
+    expect(screen.getByText("Bạn đã trả lời hết các câu.")).toBeInTheDocument();
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Xem kết quả" }));
+    await waitFor(() => expect(screen.getByText("1/2")).toBeInTheDocument());
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/attempts/a1/submit");
+  });
 });

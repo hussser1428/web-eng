@@ -10,8 +10,9 @@ type Summary = { correct: number; total: number };
 
 export function DrillRunner({ attempt }: { attempt: AttemptForClient }) {
   const qs = attempt.questions;
+  const allAnswered = qs.every((q) => q.chosen !== null);
   const firstUnanswered = Math.max(0, qs.findIndex((q) => q.chosen === null));
-  const [idx, setIdx] = useState(qs.every((q) => q.chosen !== null) ? qs.length - 1 : firstUnanswered);
+  const [idx, setIdx] = useState(allAnswered ? qs.length - 1 : firstUnanswered);
   const [selected, setSelected] = useState<number | null>(null);
   const [reveal, setReveal] = useState<Reveal | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -82,6 +83,20 @@ export function DrillRunner({ attempt }: { attempt: AttemptForClient }) {
     );
   }
 
+  if (allAnswered) {
+    return (
+      <div className="mx-auto flex max-w-3xl flex-col gap-4">
+        <div className="card flex flex-col items-center gap-4 p-8 text-center">
+          <p className="text-lg font-semibold">Bạn đã trả lời hết các câu.</p>
+          {error && <p className="text-sm text-neon-pink">{error}</p>}
+          <button type="button" onClick={finish} disabled={pending} className="btn-neon rounded-full px-6 py-2.5 font-semibold disabled:opacity-50">
+            Xem kết quả
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
       <div className="flex items-center justify-between text-sm text-muted">
@@ -91,7 +106,7 @@ export function DrillRunner({ attempt }: { attempt: AttemptForClient }) {
       <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
         <div className="h-full rounded-full bg-gradient-to-r from-neon-violet to-neon-cyan transition-all" style={{ width: `${((idx + (reveal ? 1 : 0)) / qs.length) * 100}%` }} />
       </div>
-      <QuestionCard q={q} index={idx + 1} selected={selected} onSelect={choose} disabled={pending} reveal={reveal ? { answer: reveal.answer, explanation: reveal.explanation } : null} />
+      <QuestionCard key={q.id} q={q} index={idx + 1} selected={selected} onSelect={choose} disabled={pending} reveal={reveal ? { answer: reveal.answer, explanation: reveal.explanation } : null} />
       {reveal && (
         <p className={`text-center text-lg font-bold ${reveal.isCorrect ? "text-emerald-300" : "text-neon-pink"}`}>{reveal.isCorrect ? "Chính xác!" : "Chưa đúng"}</p>
       )}
