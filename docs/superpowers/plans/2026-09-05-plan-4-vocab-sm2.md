@@ -28,7 +28,7 @@ Mọi task đều phải tuân thủ các điều dưới đây; phần **Yêu c
 
 - **Toàn bộ tiếng Việt:** giao diện, thông báo lỗi, tên test (`it("quên thì đặt lại về 1 ngày")`), comment, commit message.
 - **Phân lớp:** hàm trong `src/features/*` **luôn nhận `db` qua tham số**, gõ kiểu hẹp bằng `Pick<PrismaClient, ...>`, **không** import `prisma` singleton. Chỉ `src/app/**` mới được import `@/lib/prisma`.
-- **Không rò đáp án xuống client.** Giống `questions/dto.ts`, DTO của phiên trắc nghiệm không chứa chỉ số đáp án đúng. Cách làm: mỗi lựa chọn mang theo `id` của từ nguồn, đáp án đúng là lựa chọn có `id === wordId`; server tự đối chiếu khi chấm.
+- **Không rò đáp án xuống client.** Giống `questions/dto.ts`, DTO của phiên trắc nghiệm chỉ gửi `choices` là mảng chuỗi, không có chỉ số đáp án và không gắn `id` từ nguồn vào lựa chọn. Client gửi lên chính chuỗi đã chọn; server tra từ rồi so với `meaningVi`/`headword` thật. (Sửa 2026-09-05 sau review Task 6: thiết kế cũ gắn `id` của từ vào từng lựa chọn, lựa chọn đúng có `id === wordId` — mở DevTools là thấy đáp án.)
 - **Test nghiệp vụ dùng fake `db`** (object thường có `vi.fn()`), không mock module, không cần Postgres. Test component dùng jsdom mặc định. Test route handler thêm `// @vitest-environment node` ở dòng đầu và `vi.mock` các module `@/lib/*`.
 - **Ngẫu nhiên phải tiêm được:** mọi hàm dùng ngẫu nhiên nhận tham số `rand?: () => number` mặc định `Math.random`, để test khoá được kết quả.
 - **Thời gian phải tiêm được:** mọi hàm dùng ngày giờ nhận `now?: Date` mặc định `new Date()`.
@@ -1016,8 +1016,7 @@ git commit -m "feat: sinh đáp án nhiễu cùng loại từ, khác nghĩa, ưu
 - Produces:
   - `type ReviewMode = "FLASHCARD" | "QUIZ"`
   - `type Direction = "EN_TO_VI" | "VI_TO_EN"`
-  - `type QuizChoice = { id: string; text: string }`
-  - `type QuizItem = { wordId: string; direction: Direction; prompt: string; phonetic: string | null; choices: QuizChoice[] }`
+  - `type QuizItem = { wordId: string; direction: Direction; prompt: string; phonetic: string | null; choices: string[] }`
   - `type VocabSession = { mode: "FLASHCARD"; early: boolean; items: DueWord[] } | { mode: "QUIZ"; early: boolean; items: QuizItem[] }`
   - `type SessionDb = PickDueDb & DistractorDb`
   - `function startVocabSession(db: SessionDb, p: { userId: string; mode: ReviewMode; now?: Date; rand?: () => number }): Promise<VocabSession>`
@@ -1026,7 +1025,7 @@ git commit -m "feat: sinh đáp án nhiễu cùng loại từ, khác nghĩa, ưu
 
 - Chế độ `FLASHCARD`: trả thẳng kết quả của `pickDueWords`.
 - Chế độ `QUIZ`: với mỗi từ, chọn chiều theo `rand()` — dưới 0.5 là `EN_TO_VI` (hỏi từ tiếng Anh, chọn nghĩa tiếng Việt), còn lại là `VI_TO_EN`. `prompt` là `headword` hoặc `meaningVi` tuỳ chiều; `phonetic` chỉ gửi khi chiều `EN_TO_VI` (chiều ngược lại mà lộ phiên âm là lộ đáp án).
-- **Không gửi chỉ số đáp án xuống client.** Mỗi lựa chọn mang `id` của từ nguồn; lựa chọn đúng là cái có `id === wordId`. Bốn lựa chọn được trộn theo `rand`.
+- **Không gửi đáp án xuống client.** `choices` là bốn chuỗi đã trộn theo `rand` — giống DTO đề thi `questions/dto.ts` chỉ gửi `choices` là chuỗi. Server chấm bằng cách so chuỗi người dùng chọn với `meaningVi`/`headword` thật của từ (Task 7). Client có `wordId` nhưng không có API nào tra được nghĩa theo id, nên payload không lộ đáp án. **Không** gắn `id` của từ nguồn vào từng lựa chọn: lựa chọn đúng mà mang `id === wordId` thì mở DevTools là thấy.
 - Từ nào không gom đủ nhiễu (`pickDistractors` ném `NOT_ENOUGH_WORDS`) thì **bỏ qua từ đó**, phiên vẫn chạy với các từ còn lại. Có từ để ôn nhưng không dựng được câu nào thì ném `Error("NOT_ENOUGH_WORDS")`. Sổ tay rỗng thì trả phiên rỗng, không ném lỗi.
 
 - [ ] **Bước 1: Viết test thất bại**
@@ -1068,7 +1067,7 @@ describe("startVocabSession", () => {
     expect(db.word.findMany).not.toHaveBeenCalled();
   });
 
-  it("chế độ trắc nghiệm dựng bốn lựa chọn, đáp án đúng mang id của từ", async () => {
+  it("chế độ trắc nghiệm dựng bốn lựa chọn là chuỗi, đáp án đúng nằm trong đó", async () => {
     const db = {
       userWord: { findMany: vi.fn(async () => [userWordRow("w1", "apple", "quả táo")]) },
       word: {
@@ -1088,10 +1087,22 @@ describe("startVocabSession", () => {
     expect(item.direction).toBe("EN_TO_VI");
     expect(item.prompt).toBe("apple");
     expect(item.choices).toHaveLength(4);
-    expect(item.choices.map((c) => c.text)).toContain("quả táo");
-    expect(item.choices.filter((c) => c.id === "w1")).toHaveLength(1);
-    // Không được lộ đáp án dưới bất kỳ tên trường nào
+    expect(item.choices).toContain("quả táo");
+    expect(new Set(item.choices).size).toBe(4);
+    // Không được lộ đáp án: lựa chọn chỉ là chuỗi, không mang id từ nguồn, không có trường answer
+    expect(item.choices.every((c) => typeof c === "string")).toBe(true);
     expect(JSON.stringify(item)).not.toContain("answer");
+    expect(JSON.stringify(item)).not.toContain("w2");
+  });
+
+  it("lỗi khác NOT_ENOUGH_WORDS thì lan truyền, không bị nuốt", async () => {
+    const db = {
+      userWord: { findMany: vi.fn(async () => [userWordRow("w1", "apple", "quả táo")]) },
+      word: { findMany: vi.fn(async () => { throw new Error("DB_DOWN"); }) },
+    };
+    await expect(
+      startVocabSession(db as never, { userId: "u1", mode: "QUIZ", now: NOW, rand: randTu([0]) }),
+    ).rejects.toThrow("DB_DOWN");
   });
 
   it("chiều Việt sang Anh hỏi bằng nghĩa và không lộ phiên âm", async () => {
@@ -1112,7 +1123,7 @@ describe("startVocabSession", () => {
     expect(s.items[0].direction).toBe("VI_TO_EN");
     expect(s.items[0].prompt).toBe("quả táo");
     expect(s.items[0].phonetic).toBeNull();
-    expect(s.items[0].choices.map((c) => c.text)).toContain("apple");
+    expect(s.items[0].choices).toContain("apple");
   });
 
   it("từ không gom đủ nhiễu thì bị bỏ qua, phiên vẫn chạy với từ còn lại", async () => {
@@ -1181,15 +1192,17 @@ export type SessionDb = PickDueDb & DistractorDb;
 export type ReviewMode = "FLASHCARD" | "QUIZ";
 export type Direction = "EN_TO_VI" | "VI_TO_EN";
 
-export type QuizChoice = { id: string; text: string };
-
-/** Một câu trắc nghiệm gửi xuống client. Cố tình không có trường đáp án. */
+/**
+ * Một câu trắc nghiệm gửi xuống client. Cố tình không có trường đáp án và
+ * `choices` chỉ là chuỗi — không gắn id từ nguồn, vì lựa chọn đúng mà mang
+ * `id === wordId` thì mở DevTools là thấy. Server chấm bằng cách so chuỗi.
+ */
 export type QuizItem = {
   wordId: string;
   direction: Direction;
   prompt: string;
   phonetic: string | null;
-  choices: QuizChoice[];
+  choices: string[];
 };
 
 export type VocabSession =
@@ -1210,13 +1223,7 @@ function textOf(direction: Direction, w: { headword: string; meaningVi: string }
 }
 
 function buildQuizItem(word: DueWord, distractors: Distractor[], direction: Direction, rand: () => number): QuizItem {
-  const choices = shuffle(
-    [
-      { id: word.wordId, text: textOf(direction, word) },
-      ...distractors.map((d) => ({ id: d.id, text: textOf(direction, d) })),
-    ],
-    rand,
-  );
+  const choices = shuffle([textOf(direction, word), ...distractors.map((d) => textOf(direction, d))], rand);
   return {
     wordId: word.wordId,
     direction,
@@ -1264,7 +1271,7 @@ export async function startVocabSession(
 - [ ] **Bước 4: Chạy test để chắc chắn nó xanh**
 
 Chạy: `npm test -- src/features/vocab/start-session.test.ts`
-Mong đợi: PASS, 6 test.
+Mong đợi: PASS, 7 test.
 
 - [ ] **Bước 5: Kiểm tra toàn bộ rồi commit**
 
@@ -1286,10 +1293,10 @@ git commit -m "feat: dựng phiên ôn thẻ và phiên trắc nghiệm hai chi�
 - Consumes: `reviewWord` từ `./review-word` (Task 3); `QUALITY` từ `./sm2` (Task 1); `Direction` từ `./start-session` (Task 6).
 - Produces:
   - `type AnswerQuizDb = Pick<PrismaClient, "userWord" | "word">`
-  - `type QuizAnswerResult = { isCorrect: boolean; correctId: string; correctText: string; dueAt: Date }`
-  - `function answerQuizWord(db: AnswerQuizDb, p: { userId: string; wordId: string; chosenId: string; direction: Direction; now?: Date }): Promise<QuizAnswerResult>`
+  - `type QuizAnswerResult = { isCorrect: boolean; correctText: string; dueAt: Date }`
+  - `function answerQuizWord(db: AnswerQuizDb, p: { userId: string; wordId: string; chosen: string; direction: Direction; now?: Date }): Promise<QuizAnswerResult>`
 
-**Yêu cầu:** Đúng khi `chosenId === wordId` — server tự biết đáp án nên client không cần giữ. Đúng thì chấm `QUALITY.QUIZ_CORRECT` (4), sai thì `QUALITY.QUIZ_WRONG` (1); giá trị 1 khiến `reviewSm2` tự đặt lại `intervalDays = 1` và `repetitions = 0`, đúng như spec mục 4.4 yêu cầu. Trả về chữ của đáp án đúng theo chiều đang hỏi để client hiện ra. Từ không tồn tại thì ném `Error("NOT_FOUND")`.
+**Yêu cầu:** Đáp án đúng là `meaningVi` của từ khi chiều `EN_TO_VI`, là `headword` khi chiều `VI_TO_EN`. Đúng khi chuỗi `chosen` người dùng gửi lên bằng đúng chuỗi đó — server tự tra từ nên client không bao giờ cầm đáp án. Đúng thì chấm `QUALITY.QUIZ_CORRECT` (4), sai thì `QUALITY.QUIZ_WRONG` (1); giá trị 1 khiến `reviewSm2` tự đặt lại `intervalDays = 1` và `repetitions = 0`, đúng như spec mục 4.4 yêu cầu. Trả về chữ của đáp án đúng để client tô màu. Từ không tồn tại thì ném `Error("NOT_FOUND")`.
 
 - [ ] **Bước 1: Viết test thất bại**
 
@@ -1323,10 +1330,9 @@ describe("answerQuizWord", () => {
   it("chọn đúng thì chấm chất lượng 4 và khoảng cách giãn ra", async () => {
     const db = fakeDb({ headword: "apple", meaningVi: "quả táo" });
 
-    const r = await answerQuizWord(db as never, { userId: "u1", wordId: "w1", chosenId: "w1", direction: "EN_TO_VI", now: NOW });
+    const r = await answerQuizWord(db as never, { userId: "u1", wordId: "w1", chosen: "quả táo", direction: "EN_TO_VI", now: NOW });
 
     expect(r.isCorrect).toBe(true);
-    expect(r.correctId).toBe("w1");
     expect(r.correctText).toBe("quả táo");
     const data = (db.userWord.update.mock.calls[0][0] as { data: { intervalDays: number; repetitions: number } }).data;
     expect(data.repetitions).toBe(3);
@@ -1336,19 +1342,27 @@ describe("answerQuizWord", () => {
   it("chọn sai thì đặt lại lịch về 1 ngày và repetitions 0", async () => {
     const db = fakeDb({ headword: "apple", meaningVi: "quả táo" });
 
-    const r = await answerQuizWord(db as never, { userId: "u1", wordId: "w1", chosenId: "w9", direction: "EN_TO_VI", now: NOW });
+    const r = await answerQuizWord(db as never, { userId: "u1", wordId: "w1", chosen: "xe hơi", direction: "EN_TO_VI", now: NOW });
 
     expect(r.isCorrect).toBe(false);
+    expect(r.correctText).toBe("quả táo");
     const data = (db.userWord.update.mock.calls[0][0] as { data: { intervalDays: number; repetitions: number } }).data;
     expect(data.intervalDays).toBe(1);
     expect(data.repetitions).toBe(0);
     expect(r.dueAt.toISOString()).toBe(new Date(NOW.getTime() + NGAY).toISOString());
   });
 
-  it("chiều Việt sang Anh thì đáp án hiện ra là từ tiếng Anh", async () => {
+  it("chiều Việt sang Anh thì so với headword, đáp án hiện ra là từ tiếng Anh", async () => {
     const db = fakeDb({ headword: "apple", meaningVi: "quả táo" });
-    const r = await answerQuizWord(db as never, { userId: "u1", wordId: "w1", chosenId: "w1", direction: "VI_TO_EN", now: NOW });
+    const r = await answerQuizWord(db as never, { userId: "u1", wordId: "w1", chosen: "apple", direction: "VI_TO_EN", now: NOW });
+    expect(r.isCorrect).toBe(true);
     expect(r.correctText).toBe("apple");
+  });
+
+  it("chiều Việt sang Anh mà gửi nghĩa tiếng Việt thì tính sai — không nhầm chiều", async () => {
+    const db = fakeDb({ headword: "apple", meaningVi: "quả táo" });
+    const r = await answerQuizWord(db as never, { userId: "u1", wordId: "w1", chosen: "quả táo", direction: "VI_TO_EN", now: NOW });
+    expect(r.isCorrect).toBe(false);
   });
 
   it("chất lượng dùng đúng hằng số của SM-2", () => {
@@ -1359,7 +1373,7 @@ describe("answerQuizWord", () => {
   it("từ không tồn tại thì ném NOT_FOUND và không ghi gì", async () => {
     const db = fakeDb(null);
     await expect(
-      answerQuizWord(db as never, { userId: "u1", wordId: "w1", chosenId: "w1", direction: "EN_TO_VI", now: NOW }),
+      answerQuizWord(db as never, { userId: "u1", wordId: "w1", chosen: "quả táo", direction: "EN_TO_VI", now: NOW }),
     ).rejects.toThrow("NOT_FOUND");
     expect(db.userWord.update).not.toHaveBeenCalled();
   });
@@ -1383,21 +1397,22 @@ import type { Direction } from "./start-session";
 
 export type AnswerQuizDb = Pick<PrismaClient, "userWord" | "word">;
 
-export type QuizAnswerResult = { isCorrect: boolean; correctId: string; correctText: string; dueAt: Date };
+export type QuizAnswerResult = { isCorrect: boolean; correctText: string; dueAt: Date };
 
 /**
  * Chấm một câu trắc nghiệm rồi cập nhật SM-2.
- * Đáp án đúng là lựa chọn mang id của chính từ đang hỏi, nên server không cần
- * nhớ phiên và client cũng không bao giờ cầm sẵn đáp án.
+ * Server tự tra từ rồi so chuỗi người dùng chọn với nghĩa/từ thật, nên không
+ * cần nhớ phiên và client cũng không bao giờ cầm sẵn đáp án.
  */
 export async function answerQuizWord(
   db: AnswerQuizDb,
-  p: { userId: string; wordId: string; chosenId: string; direction: Direction; now?: Date },
+  p: { userId: string; wordId: string; chosen: string; direction: Direction; now?: Date },
 ): Promise<QuizAnswerResult> {
   const word = await db.word.findUnique({ where: { id: p.wordId }, select: { headword: true, meaningVi: true } });
   if (!word) throw new Error("NOT_FOUND");
 
-  const isCorrect = p.chosenId === p.wordId;
+  const correctText = p.direction === "EN_TO_VI" ? word.meaningVi : word.headword;
+  const isCorrect = p.chosen === correctText;
   const r = await reviewWord(db, {
     userId: p.userId,
     wordId: p.wordId,
@@ -1405,19 +1420,14 @@ export async function answerQuizWord(
     now: p.now,
   });
 
-  return {
-    isCorrect,
-    correctId: p.wordId,
-    correctText: p.direction === "EN_TO_VI" ? word.meaningVi : word.headword,
-    dueAt: r.dueAt,
-  };
+  return { isCorrect, correctText, dueAt: r.dueAt };
 }
 ```
 
 - [ ] **Bước 4: Chạy test để chắc chắn nó xanh**
 
 Chạy: `npm test -- src/features/vocab/answer-quiz.test.ts`
-Mong đợi: PASS, 5 test.
+Mong đợi: PASS, 6 test.
 
 - [ ] **Bước 5: Kiểm tra toàn bộ rồi commit**
 
@@ -1443,7 +1453,7 @@ git commit -m "feat: chấm câu trắc nghiệm từ vựng và cập nhật SM
 - Consumes: `reviewWord` (Task 3), `removeUserWord` (Task 4), `answerQuizWord` (Task 7), `QUALITY` (Task 1), `errorToResponse` từ `@/lib/api-errors`.
 - Produces:
   - `POST /api/vocab/review` — body `{ wordId: string, grade: "FORGOT" | "HARD" | "EASY" }` → `{ dueAt: string, intervalDays: number, early: boolean }`
-  - `POST /api/vocab/quiz` — body `{ wordId: string, chosenId: string, direction: "EN_TO_VI" | "VI_TO_EN" }` → `{ isCorrect: boolean, correctId: string, correctText: string, dueAt: string }`
+  - `POST /api/vocab/quiz` — body `{ wordId: string, chosen: string, direction: "EN_TO_VI" | "VI_TO_EN" }` → `{ isCorrect: boolean, correctText: string, dueAt: string }`
   - `DELETE /api/vocab/saved/[wordId]` → `{ removed: true }` hoặc 404
 
 **Yêu cầu:** Route là lớp mỏng đúng khuôn `src/app/api/drill/start/route.ts`: `auth()` → `zod` parse body → gọi hàm nghiệp vụ với `prisma` thật → `errorToResponse` map mã lỗi. Chưa đăng nhập trả 401 `UNAUTHORIZED`, body sai trả 400 `INVALID`. Thêm `NOT_ENOUGH_WORDS: 409` vào bảng `STATUS` trong `src/lib/api-errors.ts` (đặt ngay dưới dòng `NOT_ENOUGH_QUESTIONS`).
@@ -1515,7 +1525,6 @@ const { authMock, answerMock } = vi.hoisted(() => ({
   authMock: vi.fn(async (): Promise<{ user: { id: string; role: string } } | null> => ({ user: { id: "u1", role: "USER" } })),
   answerMock: vi.fn(async () => ({
     isCorrect: true,
-    correctId: "w1",
     correctText: "quả táo",
     dueAt: new Date("2026-09-20T00:00:00.000Z"),
   })),
@@ -1532,25 +1541,29 @@ function req(body: unknown) {
 
 describe("POST /api/vocab/quiz", () => {
   it("chấm câu trắc nghiệm và trả đáp án đúng cho client hiện ra", async () => {
-    const res = await POST(req({ wordId: "w1", chosenId: "w1", direction: "EN_TO_VI" }));
+    const res = await POST(req({ wordId: "w1", chosen: "quả táo", direction: "EN_TO_VI" }));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({
       isCorrect: true,
-      correctId: "w1",
       correctText: "quả táo",
       dueAt: "2026-09-20T00:00:00.000Z",
     });
-    expect(answerMock).toHaveBeenCalledWith({}, { userId: "u1", wordId: "w1", chosenId: "w1", direction: "EN_TO_VI" });
+    expect(answerMock).toHaveBeenCalledWith({}, { userId: "u1", wordId: "w1", chosen: "quả táo", direction: "EN_TO_VI" });
   });
 
   it("chiều dịch lạ thì trả 400", async () => {
-    const res = await POST(req({ wordId: "w1", chosenId: "w1", direction: "EN_TO_JP" }));
+    const res = await POST(req({ wordId: "w1", chosen: "quả táo", direction: "EN_TO_JP" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("chuỗi chọn rỗng thì trả 400", async () => {
+    const res = await POST(req({ wordId: "w1", chosen: "", direction: "EN_TO_VI" }));
     expect(res.status).toBe(400);
   });
 
   it("chưa đăng nhập thì trả 401", async () => {
     authMock.mockResolvedValueOnce(null);
-    const res = await POST(req({ wordId: "w1", chosenId: "w1", direction: "EN_TO_VI" }));
+    const res = await POST(req({ wordId: "w1", chosen: "quả táo", direction: "EN_TO_VI" }));
     expect(res.status).toBe(401);
   });
 });
@@ -1619,7 +1632,7 @@ import { answerQuizWord } from "@/features/vocab/answer-quiz";
 
 const bodySchema = z.object({
   wordId: z.string().min(1),
-  chosenId: z.string().min(1),
+  chosen: z.string().min(1).max(500),
   direction: z.enum(["EN_TO_VI", "VI_TO_EN"]),
 });
 
@@ -1632,7 +1645,6 @@ export async function POST(req: Request) {
     const r = await answerQuizWord(prisma, { userId: session.user.id, ...parsed.data });
     return NextResponse.json({
       isCorrect: r.isCorrect,
-      correctId: r.correctId,
       correctText: r.correctText,
       dueAt: r.dueAt.toISOString(),
     });
@@ -1665,7 +1677,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ word
 - [ ] **Bước 4: Chạy test để chắc chắn nó xanh**
 
 Chạy: `npm test -- src/app/api/vocab`
-Mong đợi: PASS, 8 test mới cộng 2 test cũ của `save/route.test.ts`.
+Mong đợi: PASS, 9 test mới cộng 2 test cũ của `save/route.test.ts`.
 
 - [ ] **Bước 5: Kiểm tra toàn bộ rồi commit**
 
@@ -2355,7 +2367,7 @@ git commit -m "feat: phiên ôn thẻ với tự đánh giá quên/khó/dễ"
 - Consumes: `startVocabSession`, `QuizItem` (Task 6); `POST /api/vocab/quiz` (Task 8).
 - Produces: `function QuizSession(props: { items: QuizItem[]; early: boolean }): JSX.Element`
 
-**Yêu cầu:** Hiện `prompt` kèm nhãn cho biết đang hỏi chiều nào. Bốn lựa chọn là nút; bấm một nút thì POST `/api/vocab/quiz` với `{ wordId, chosenId, direction }`, khoá các nút lại, tô xanh lựa chọn có `id === correctId` và tô đỏ lựa chọn sai vừa chọn. Nút "Câu tiếp" sang câu sau; câu cuối thì hiện tổng kết `số đúng / tổng`. Phiên rỗng thì báo chưa đủ từ để làm trắc nghiệm và mời ôn thẻ.
+**Yêu cầu:** Hiện `prompt` kèm nhãn cho biết đang hỏi chiều nào. Bốn lựa chọn là nút, mỗi nút là một chuỗi trong `choices`; bấm một nút thì POST `/api/vocab/quiz` với `{ wordId, chosen, direction }` (`chosen` là chính chuỗi đó), khoá các nút lại, tô xanh lựa chọn có chuỗi `=== correctText` và tô đỏ lựa chọn sai vừa chọn. Client không bao giờ biết đáp án trước khi server trả về. Nút "Câu tiếp" sang câu sau; câu cuối thì hiện tổng kết `số đúng / tổng`. Phiên rỗng thì báo chưa đủ từ để làm trắc nghiệm và mời ôn thẻ.
 
 Trang server bắt `NOT_ENOUGH_WORDS` từ `startVocabSession` và hiện lời nhắc thay vì để lỗi 500 hắt ra.
 
@@ -2374,12 +2386,7 @@ const CAU_EN_VI = {
   direction: "EN_TO_VI" as const,
   prompt: "apple",
   phonetic: "/x/",
-  choices: [
-    { id: "w2", text: "quyển sách" },
-    { id: "w1", text: "quả táo" },
-    { id: "w3", text: "xe hơi" },
-    { id: "w4", text: "con chó" },
-  ],
+  choices: ["quyển sách", "quả táo", "xe hơi", "con chó"],
 };
 
 const CAU_VI_EN = {
@@ -2387,16 +2394,11 @@ const CAU_VI_EN = {
   direction: "VI_TO_EN" as const,
   prompt: "con mèo",
   phonetic: null,
-  choices: [
-    { id: "w5", text: "cat" },
-    { id: "w6", text: "dog" },
-    { id: "w7", text: "bird" },
-    { id: "w8", text: "fish" },
-  ],
+  choices: ["cat", "dog", "bird", "fish"],
 };
 
 function traLoi(isCorrect: boolean, correctText: string) {
-  return new Response(JSON.stringify({ isCorrect, correctId: "w1", correctText, dueAt: "2026-09-20T00:00:00.000Z" }), { status: 200 });
+  return new Response(JSON.stringify({ isCorrect, correctText, dueAt: "2026-09-20T00:00:00.000Z" }), { status: 200 });
 }
 
 beforeEach(() => {
@@ -2410,13 +2412,13 @@ describe("QuizSession", () => {
     expect(screen.getAllByRole("button", { name: /quả táo|quyển sách|xe hơi|con chó/ })).toHaveLength(4);
   });
 
-  it("chọn đáp án thì gửi id lựa chọn chứ không gửi chỉ số", async () => {
+  it("chọn đáp án thì gửi đúng chuỗi đã chọn kèm chiều hỏi", async () => {
     const user = userEvent.setup();
     render(<QuizSession items={[CAU_EN_VI]} early={false} />);
     await user.click(screen.getByRole("button", { name: "quả táo" }));
 
     const body = JSON.parse((vi.mocked(fetch).mock.calls[0][1] as RequestInit).body as string);
-    expect(body).toEqual({ wordId: "w1", chosenId: "w1", direction: "EN_TO_VI" });
+    expect(body).toEqual({ wordId: "w1", chosen: "quả táo", direction: "EN_TO_VI" });
   });
 
   it("chọn sai thì hiện đáp án đúng", async () => {
@@ -2470,7 +2472,7 @@ import { useState } from "react";
 import Link from "next/link";
 import type { QuizItem } from "@/features/vocab/start-session";
 
-type KetQua = { isCorrect: boolean; correctId: string; correctText: string };
+type KetQua = { isCorrect: boolean; correctText: string };
 
 export function QuizSession({ items, early }: { items: QuizItem[]; early: boolean }) {
   const [idx, setIdx] = useState(0);
@@ -2505,16 +2507,16 @@ export function QuizSession({ items, early }: { items: QuizItem[]; early: boolea
   const cau = items[idx];
   const laCuoi = idx === items.length - 1;
 
-  async function traLoi(chosenId: string) {
+  async function traLoi(chosen: string) {
     if (ketQua || pending) return;
-    setChon(chosenId);
+    setChon(chosen);
     setPending(true);
     setLoi(null);
     try {
       const res = await fetch("/api/vocab/quiz", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ wordId: cau.wordId, chosenId, direction: cau.direction }),
+        body: JSON.stringify({ wordId: cau.wordId, chosen, direction: cau.direction }),
       });
       if (!res.ok) throw new Error("fail");
       const data = (await res.json()) as KetQua;
@@ -2538,10 +2540,10 @@ export function QuizSession({ items, early }: { items: QuizItem[]; early: boolea
     setChon(null);
   }
 
-  const classCua = (id: string) => {
+  const classCua = (text: string) => {
     if (!ketQua) return "border-line hover:bg-surface-2";
-    if (id === ketQua.correctId) return "border-emerald-400/60 bg-emerald-400/10";
-    if (id === chon) return "border-danger/60 bg-danger/10";
+    if (text === ketQua.correctText) return "border-emerald-400/60 bg-emerald-400/10";
+    if (text === chon) return "border-danger/60 bg-danger/10";
     return "border-line opacity-60";
   };
 
@@ -2565,13 +2567,13 @@ export function QuizSession({ items, early }: { items: QuizItem[]; early: boolea
         <div className="grid gap-2 sm:grid-cols-2">
           {cau.choices.map((c) => (
             <button
-              key={c.id}
+              key={c}
               type="button"
-              onClick={() => traLoi(c.id)}
+              onClick={() => traLoi(c)}
               disabled={ketQua !== null || pending}
-              className={`rounded-xl border px-4 py-3 text-left transition disabled:cursor-default ${classCua(c.id)}`}
+              className={`rounded-xl border px-4 py-3 text-left transition disabled:cursor-default ${classCua(c)}`}
             >
-              {c.text}
+              {c}
             </button>
           ))}
         </div>
@@ -2881,7 +2883,7 @@ Trắc nghiệm cần từ điển đủ dày: mỗi câu phải tìm được b
 Trong mục "Kiến trúc", thêm một đoạn ngay sau đoạn bắt đầu bằng `**Chứng chỉ & làm bài:**`:
 
 ```markdown
-**Từ vựng và SM-2:** `src/features/vocab/sm2.ts` là hàm thuần duy nhất biết công thức SM-2 — không chạm database, không đọc đồng hồ. `review-word.ts` mới là chỗ quy `intervalDays` ra mốc `dueAt` và áp quy tắc ôn sớm (dueAt cũ còn ở tương lai thì lấy mốc sớm hơn giữa lịch cũ và lịch mới). Sửa công thức thì sửa `sm2.ts`, sửa cách hẹn lịch thì sửa `review-word.ts`. Phiên ôn dựng sẵn một lần bằng `start-session.ts` rồi trang server truyền thẳng xuống component client. Câu trắc nghiệm **không gửi chỉ số đáp án xuống client**: mỗi lựa chọn mang `id` của từ nguồn, đáp án đúng là lựa chọn có `id === wordId`, server tự đối chiếu khi chấm. Bảng `VocabQuizAnswer` trong spec cố tình chưa dựng — SM-2 cập nhật thẳng trên `UserWord`.
+**Từ vựng và SM-2:** `src/features/vocab/sm2.ts` là hàm thuần duy nhất biết công thức SM-2 — không chạm database, không đọc đồng hồ. `review-word.ts` mới là chỗ quy `intervalDays` ra mốc `dueAt` và áp quy tắc ôn sớm (dueAt cũ còn ở tương lai thì lấy mốc sớm hơn giữa lịch cũ và lịch mới). Sửa công thức thì sửa `sm2.ts`, sửa cách hẹn lịch thì sửa `review-word.ts`. Phiên ôn dựng sẵn một lần bằng `start-session.ts` rồi trang server truyền thẳng xuống component client. Câu trắc nghiệm **không gửi đáp án xuống client**: `choices` chỉ là mảng chuỗi (không gắn `id` từ nguồn — nếu gắn thì lựa chọn đúng có `id === wordId`, mở DevTools là thấy), client gửi lên chuỗi đã chọn, server tra từ rồi so với `meaningVi`/`headword` thật trong `answer-quiz.ts`. Bảng `VocabQuizAnswer` trong spec cố tình chưa dựng — SM-2 cập nhật thẳng trên `UserWord`.
 ```
 
 - [ ] **Bước 3: Kiểm tra toàn bộ rồi commit**
