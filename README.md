@@ -10,6 +10,20 @@ Web luyện thi TOEIC Listening & Reading, kèm từ điển bôi đen dịch, t
 4. `npx prisma migrate dev`
 5. Tải từ điển theo `prisma/seed/fixtures/README.md`, rồi `npm run db:import-dict -- data/star_anhviet`
 6. `npm run dev` và mở http://localhost:3000
+7. Luyện tập: `/drill` → Part 5 → 10 câu
+8. Thi thử: `/exam` → Đề rút gọn 1 → làm → Nộp bài → xem điểm
+
+## Nhập câu hỏi và đề thi
+
+Câu hỏi nằm trong file JSON (xem mẫu `prisma/seed/fixtures/questions-sample.json`, định dạng mô tả trong `src/features/questions/import-schema.ts`).
+
+```bash
+npm run db:import-questions -- prisma/seed/fixtures/questions-sample.json --exam "Đề rút gọn 1"
+# --draft: nhập ở trạng thái DRAFT (chưa hiện cho người dùng)
+# không có --exam: chỉ nhập câu cho luyện tập
+```
+
+Đề đầy đủ TOEIC cần 200 câu theo cấu trúc trong `src/features/certificates/toeic.ts`; đề ít câu hơn vẫn chạy được và được ghi "đề rút gọn".
 
 ## Docker
 
@@ -27,6 +41,11 @@ Web luyện thi TOEIC Listening & Reading, kèm từ điển bôi đen dịch, t
 - Giới hạn kích thước bảng `TranslationCache` (TTL hoặc dọn định kỳ) — mỗi lần dịch hụt cache ghi thêm một dòng.
 - Ghim phiên bản image LibreTranslate trong `docker-compose.yml` thay vì dùng `latest`.
 - Cấu hình Google OAuth thật (`AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET`) trước khi bật đăng nhập bằng Google.
+
+## Việc còn nợ (đã biết, chưa chặn)
+
+- **Trước khi nhập nội dung phần nghe (Part 1–4):** `QuestionCard` truyền `key` theo từng câu nên `AudioOnce` bị reset mỗi câu — audio dùng chung cho cả nhóm (Part 3/4) sẽ phát lại ở từng câu trong nhóm. Cần tách audio của nhóm ra khỏi vòng đời từng câu (`src/components/questions/QuestionCard.tsx`, `src/components/exam/ExamRunner.tsx`).
+- **Khi có tải thật:** `saveExamAnswers` gọi `updateMany` cho từng câu (200 lượt truy vấn mỗi 30 giây với một đề đầy đủ). Nên chỉ gửi những câu vừa đổi và gộp các lệnh cập nhật khi chấm bài (`src/features/attempts/save-exam-answers.ts`, `submit.ts`).
 
 ## Tài liệu
 

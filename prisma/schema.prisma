@@ -24,6 +24,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   userWords     UserWord[]
+  attempts      Attempt[]
 }
 
 model Account {
@@ -98,4 +99,108 @@ model TranslationCache {
   to        String
   result    String
   createdAt DateTime @default(now())
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum QuestionSource {
+  AI
+  IMPORT
+  MANUAL
+}
+
+enum AttemptType {
+  EXAM
+  DRILL
+}
+
+model QuestionGroup {
+  id          String     @id @default(cuid())
+  certificate String     @default("toeic")
+  section     String
+  passage     String?
+  transcript  String?
+  audioUrl    String?
+  imageUrl    String?
+  questions   Question[]
+}
+
+model Question {
+  id             String          @id @default(cuid())
+  certificate    String          @default("toeic")
+  section        String
+  status         ContentStatus   @default(DRAFT)
+  groupId        String?
+  group          QuestionGroup?  @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  stem           String?
+  choices        Json
+  answer         Int
+  explanation    String
+  skillTags      String[]        @default([])
+  audioUrl       String?
+  imageUrl       String?
+  transcript     String?
+  source         QuestionSource  @default(IMPORT)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  examQuestions  ExamQuestion[]
+  attemptAnswers AttemptAnswer[]
+
+  @@index([certificate, section, status])
+}
+
+model Exam {
+  id          String         @id @default(cuid())
+  certificate String         @default("toeic")
+  title       String
+  status      ContentStatus  @default(DRAFT)
+  createdAt   DateTime       @default(now())
+  questions   ExamQuestion[]
+  attempts    Attempt[]
+}
+
+model ExamQuestion {
+  examId     String
+  questionId String
+  order      Int
+  exam       Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@id([examId, questionId])
+  @@index([examId, order])
+}
+
+model Attempt {
+  id          String          @id @default(cuid())
+  userId      String
+  certificate String          @default("toeic")
+  type        AttemptType
+  examId      String?
+  startedAt   DateTime        @default(now())
+  submittedAt DateTime?
+  overtime    Boolean         @default(false)
+  scores      Json?
+  config      Json?
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exam        Exam?           @relation(fields: [examId], references: [id], onDelete: SetNull)
+  answers     AttemptAnswer[]
+
+  @@index([userId, certificate, submittedAt])
+}
+
+model AttemptAnswer {
+  id         String   @id @default(cuid())
+  attemptId  String
+  questionId String
+  order      Int
+  chosen     Int?
+  isCorrect  Boolean?
+  attempt    Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId, order])
 }

@@ -1,7 +1,7 @@
 # Thiết kế: Web luyện thi TOEIC (Listening & Reading)
 
 Ngày: 2026-09-03
-Trạng thái: đã duyệt ý tưởng; kế hoạch 1 và giao diện khung đã xong. Cập nhật 2026-09-05: mô hình dữ liệu sẵn chỗ cho nhiều chứng chỉ (xem mục 3.1).
+Trạng thái: đã duyệt ý tưởng; kế hoạch 1, kế hoạch 2 (ngân hàng câu hỏi, luyện tập, thi thử) và giao diện khung đã xong. Cập nhật 2026-09-05: mô hình dữ liệu sẵn chỗ cho nhiều chứng chỉ (xem mục 3.1).
 
 ## 1. Mục tiêu
 
