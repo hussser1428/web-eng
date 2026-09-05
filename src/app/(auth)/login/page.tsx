@@ -4,29 +4,33 @@ import { Suspense, useActionState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { loginAction, googleAction } from "../actions";
+import { AuthCard, inputClass, labelClass, primaryButtonClass, secondaryButtonClass } from "@/components/layout/AuthCard";
 
 function LoginForm() {
   const [error, action, pending] = useActionState(loginAction, null);
   const params = useSearchParams();
   return (
-    <main className="mx-auto max-w-sm p-6" data-no-translate>
-      <h1 className="mb-4 text-2xl font-bold">Đăng nhập</h1>
-      {params.get("registered") && <p className="mb-3 text-sm text-green-700">Đăng ký thành công, hãy đăng nhập.</p>}
+    <AuthCard title="Đăng nhập">
+      {params.get("registered") && <p className="mb-3 rounded-md bg-green-50 p-2 text-sm text-green-700">Đăng ký thành công, hãy đăng nhập.</p>}
       <form action={action} className="flex flex-col gap-3">
-        <input name="email" type="email" required placeholder="Email" className="rounded border p-2" />
-        <input name="password" type="password" required placeholder="Mật khẩu" className="rounded border p-2" />
+        <label className="flex flex-col gap-1">
+          <span className={labelClass}>Email</span>
+          <input name="email" type="email" required autoComplete="email" className={inputClass} />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className={labelClass}>Mật khẩu</span>
+          <input name="password" type="password" required autoComplete="current-password" className={inputClass} />
+        </label>
         {error && <p className="text-sm text-red-600">{error}</p>}
-        <button disabled={pending} className="rounded bg-blue-600 p-2 text-white disabled:opacity-50">
-          Đăng nhập
-        </button>
+        <button disabled={pending} className={primaryButtonClass}>Đăng nhập</button>
       </form>
       <form action={googleAction} className="mt-3">
-        <button className="w-full rounded border p-2">Đăng nhập bằng Google</button>
+        <button className={secondaryButtonClass}>Đăng nhập bằng Google</button>
       </form>
-      <p className="mt-4 text-sm">
-        Chưa có tài khoản? <Link href="/register" className="text-blue-600 underline">Đăng ký</Link>
+      <p className="mt-4 text-sm text-slate-600">
+        Chưa có tài khoản? <Link href="/register" className="font-medium text-blue-700 hover:underline">Đăng ký</Link>
       </p>
-    </main>
+    </AuthCard>
   );
 }
 

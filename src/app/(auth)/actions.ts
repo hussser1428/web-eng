@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
-import { signIn } from "@/lib/auth";
+import { signIn, signOut } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { registerUser } from "@/features/auth/register";
 
@@ -34,4 +34,8 @@ export async function loginAction(_prev: string | null, formData: FormData): Pro
 
 export async function googleAction() {
   await signIn("google", { redirectTo: "/" });
+}
+
+export async function logoutAction() {
+  await signOut({ redirectTo: "/" });
 }
