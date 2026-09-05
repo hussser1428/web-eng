@@ -17,6 +17,9 @@ const params = Promise.resolve({ attemptId: "a1" });
 function req(body?: unknown) {
   return new Request("http://x/api/attempts/a1/submit", { method: "POST", body: body === undefined ? null : JSON.stringify(body), headers: { "Content-Type": "application/json" } });
 }
+function reqRaw(rawBody: string) {
+  return new Request("http://x/api/attempts/a1/submit", { method: "POST", body: rawBody, headers: { "Content-Type": "application/json" } });
+}
 
 describe("POST /api/attempts/[attemptId]/submit", () => {
   it("không body → chỉ nộp", async () => {
@@ -41,5 +44,11 @@ describe("POST /api/attempts/[attemptId]/submit", () => {
   it("chưa đăng nhập → 401", async () => {
     authMock.mockResolvedValueOnce(null);
     expect((await POST(req(), { params })).status).toBe(401);
+  });
+
+  it("body không phải JSON → 400 INVALID", async () => {
+    const res = await POST(reqRaw("not json"), { params });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "INVALID" });
   });
 });

@@ -14,7 +14,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ attempt
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   const raw = await req.text();
-  const parsed = bodySchema.safeParse(raw ? JSON.parse(raw) : {});
+  let body: unknown = {};
+  if (raw) {
+    try {
+      body = JSON.parse(raw);
+    } catch {
+      return NextResponse.json({ error: "INVALID" }, { status: 400 });
+    }
+  }
+  const parsed = bodySchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "INVALID" }, { status: 400 });
   const { attemptId } = await params;
   const userId = session.user.id;

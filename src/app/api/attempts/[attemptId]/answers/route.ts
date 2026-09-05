@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { errorToResponse } from "@/lib/api-errors";
 import { saveExamAnswers } from "@/features/attempts/save-exam-answers";
 
-export const answersSchema = z.object({
+const answersSchema = z.object({
   answers: z.array(z.object({ questionId: z.string().min(1), chosen: z.number().int().min(0).max(3).nullable() })).max(300),
 });
 
