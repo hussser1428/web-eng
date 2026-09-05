@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { saveWord } from "@/features/vocab/save-word";
@@ -15,7 +16,7 @@ export async function POST(req: Request) {
     const r = await saveWord(prisma, { userId: session.user.id, wordId: parsed.data.wordId, sourceContext: parsed.data.context });
     return NextResponse.json(r);
   } catch (e) {
-    if (typeof e === "object" && e !== null && "code" in e && e.code === "P2003") {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003") {
       return NextResponse.json({ error: "WORD_NOT_FOUND" }, { status: 404 });
     }
     throw e;

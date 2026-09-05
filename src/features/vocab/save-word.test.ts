@@ -17,12 +17,13 @@ describe("saveWord", () => {
     };
     const r = await saveWord(db as never, { userId: "u", wordId: "w", sourceContext: "x".repeat(400) });
     expect(r).toEqual({ created: true });
-    const data = db.userWord.upsert.mock.calls[0][0].create;
-    expect(data.sourceContext?.length).toBe(300);
-    expect(data.userId).toBe("u");
+    const call = db.userWord.upsert.mock.calls[0][0];
+    expect(call.update).toEqual({});
+    expect(call.create.sourceContext?.length).toBe(300);
+    expect(call.create.userId).toBe("u");
   });
 
-  it("đã có thì không tạo lại", async () => {
+  it("đã có thì không tạo lại nhưng vẫn upsert (không đụng tiến độ SM-2 vì update rỗng)", async () => {
     const db = {
       userWord: {
         findUnique: vi.fn(async () => ({ id: "uw" })),
@@ -31,17 +32,7 @@ describe("saveWord", () => {
     };
     const r = await saveWord(db as never, { userId: "u", wordId: "w" });
     expect(r).toEqual({ created: false });
-    expect(db.userWord.upsert).not.toHaveBeenCalled();
-  });
-
-  it("race: findUnique không thấy nhưng upsert bị trùng (P2002) thì trả created: false", async () => {
-    const db = {
-      userWord: {
-        findUnique: vi.fn(async () => null),
-        upsert: vi.fn<(args: UpsertArgs) => Promise<unknown>>().mockRejectedValue({ code: "P2002" }),
-      },
-    };
-    const r = await saveWord(db as never, { userId: "u", wordId: "w" });
-    expect(r).toEqual({ created: false });
+    const call = db.userWord.upsert.mock.calls[0][0];
+    expect(call.update).toEqual({});
   });
 });

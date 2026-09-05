@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import { Prisma } from "@prisma/client";
 import { registerUser } from "./register";
 
 type CreateData = { email: string; passwordHash: string; role: string; name: string | null };
@@ -55,7 +56,7 @@ describe("registerUser", () => {
       user: {
         findUnique: vi.fn(async () => null),
         create: vi.fn(async () => {
-          throw { code: "P2002" };
+          throw new Prisma.PrismaClientKnownRequestError("dup", { code: "P2002", clientVersion: "test" });
         }),
       },
     };

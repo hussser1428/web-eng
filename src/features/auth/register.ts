@@ -1,12 +1,8 @@
 import { z } from "zod";
-import type { PrismaClient } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
 import { hashPassword } from "@/lib/password";
 
 export type Db = Pick<PrismaClient, "user">;
-
-function isUniqueViolation(e: unknown): boolean {
-  return typeof e === "object" && e !== null && "code" in e && e.code === "P2002";
-}
 
 const schema = z.object({
   email: z.string().trim().toLowerCase().email(),
@@ -35,7 +31,9 @@ export async function registerUser(
     });
     return { ok: true, userId: user.id };
   } catch (e) {
-    if (isUniqueViolation(e)) return { ok: false, error: "EMAIL_TAKEN" };
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      return { ok: false, error: "EMAIL_TAKEN" };
+    }
     throw e;
   }
 }

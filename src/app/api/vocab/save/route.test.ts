@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, vi } from "vitest";
+import { Prisma } from "@prisma/client";
 
 const { authMock } = vi.hoisted(() => ({
   authMock: vi.fn(async (): Promise<{ user: { id: string; role: string } } | null> => ({
@@ -10,7 +11,7 @@ vi.mock("@/lib/auth", () => ({ auth: authMock }));
 vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 vi.mock("@/features/vocab/save-word", () => ({
   saveWord: vi.fn(async () => {
-    throw { code: "P2003" };
+    throw new Prisma.PrismaClientKnownRequestError("fk", { code: "P2003", clientVersion: "test" });
   }),
 }));
 
