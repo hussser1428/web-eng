@@ -52,8 +52,8 @@ export default async function ExamIntroPage({ params }: { params: Promise<{ exam
             {previous.map((a) => (
               <li key={a.id} className="flex items-center justify-between py-2">
                 <span className="text-muted">{a.submittedAt?.toLocaleString("vi-VN")}</span>
-                <span className="font-semibold text-neon">{(a.scores as { total?: number } | null)?.total ?? "—"} điểm</span>
-                <Link href={`/attempts/${a.id}/result`} className="text-neon-cyan hover:underline">Xem</Link>
+                <span className="font-semibold text-accent">{(a.scores as { total?: number } | null)?.total ?? "—"} điểm</span>
+                <Link href={`/attempts/${a.id}/result`} className="text-info hover:underline">Xem</Link>
               </li>
             ))}
           </ul>

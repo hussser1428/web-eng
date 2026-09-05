@@ -30,7 +30,7 @@ export function ExamTimer({ deadline, onExpire }: Props) {
 
   const warn = left !== null && left < 5 * 60_000;
   return (
-    <span role="timer" aria-live="off" className={`font-mono text-2xl font-bold tabular-nums ${warn ? "text-neon-pink" : "text-neon-cyan"}`}>
+    <span role="timer" aria-live="off" className={`font-mono text-2xl font-bold tabular-nums ${warn ? "text-danger" : "text-foreground"}`}>
       {left === null ? "--:--" : fmt(left)}
     </span>
   );

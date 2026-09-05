@@ -23,6 +23,6 @@ describe("ExamTimer", () => {
   it("dưới 5 phút thì đổi màu cảnh báo", () => {
     vi.useFakeTimers();
     render(<ExamTimer deadline={Date.now() + 4 * 60_000} onExpire={() => {}} />);
-    expect(screen.getByRole("timer").className).toContain("text-neon-pink");
+    expect(screen.getByRole("timer").className).toContain("text-danger");
   });
 });

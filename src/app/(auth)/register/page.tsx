@@ -8,7 +8,7 @@ import { AuthCard, inputClass, labelClass, primaryButtonClass } from "@/componen
 export default function RegisterPage() {
   const [error, action, pending] = useActionState(registerAction, null);
   return (
-    <AuthCard title="Đăng ký" subtitle="Tạo tài khoản trong 10 giây ✨">
+    <AuthCard title="Đăng ký" subtitle="Tạo tài khoản trong 10 giây.">
       <form action={action} className="flex flex-col gap-3">
         <label className="flex flex-col gap-1">
           <span className={labelClass}>Tên (tùy chọn)</span>
@@ -22,11 +22,11 @@ export default function RegisterPage() {
           <span className={labelClass}>Mật khẩu (tối thiểu 8 ký tự)</span>
           <input name="password" type="password" required minLength={8} autoComplete="new-password" className={inputClass} />
         </label>
-        {error && <p className="text-sm text-neon-pink">{error}</p>}
+        {error && <p className="text-sm text-danger">{error}</p>}
         <button disabled={pending} className={primaryButtonClass}>Tạo tài khoản</button>
       </form>
       <p className="mt-4 text-sm text-muted">
-        Đã có tài khoản? <Link href="/login" className="font-semibold text-neon-cyan hover:underline">Đăng nhập</Link>
+        Đã có tài khoản? <Link href="/login" className="font-semibold text-info hover:underline">Đăng nhập</Link>
       </p>
     </AuthCard>
   );

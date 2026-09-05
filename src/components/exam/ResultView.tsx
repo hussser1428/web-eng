@@ -13,17 +13,16 @@ export function ResultView({ result }: { result: AttemptResult }) {
   return (
     <div className="flex flex-col gap-6">
       <section className="card relative overflow-hidden p-6 md:p-8">
-        <div className="glow -top-20 -right-10 h-60 w-60 bg-neon-violet" />
         <div className="relative flex flex-wrap items-end justify-between gap-6">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wider text-muted">{isExam ? "Kết quả thi thử" : "Kết quả luyện tập"}</p>
             {isExam && result.scores ? (
               <>
-                <p className="mt-2 text-6xl font-extrabold text-neon">{result.scores.total}</p>
+                <p className="mt-2 text-6xl font-extrabold text-accent">{result.scores.total}</p>
                 <p className="mt-1 text-sm text-muted">Điểm ước tính (tối đa 990)</p>
               </>
             ) : (
-              <p className="mt-2 text-6xl font-extrabold text-neon">{result.correct}/{result.total}</p>
+              <p className="mt-2 text-6xl font-extrabold text-accent">{result.correct}/{result.total}</p>
             )}
             {result.overtime && <span className="mt-3 inline-block rounded-full border border-amber-400/50 bg-amber-400/10 px-3 py-1 text-xs font-semibold text-amber-300">Nộp quá giờ</span>}
           </div>
@@ -59,9 +58,9 @@ export function ResultView({ result }: { result: AttemptResult }) {
         </label>
         <div className="flex gap-2">
           {isExam ? (
-            <Link href="/exam" className="btn-neon rounded-full px-5 py-2 text-sm font-semibold">Chọn đề khác</Link>
+            <Link href="/exam" className="btn-primary rounded-lg px-5 py-2 text-sm font-semibold">Chọn đề khác</Link>
           ) : (
-            <Link href="/drill" className="btn-neon rounded-full px-5 py-2 text-sm font-semibold">Luyện tiếp</Link>
+            <Link href="/drill" className="btn-primary rounded-lg px-5 py-2 text-sm font-semibold">Luyện tiếp</Link>
           )}
         </div>
       </div>
@@ -70,7 +69,7 @@ export function ResultView({ result }: { result: AttemptResult }) {
         {shown.map((q) => (
           <QuestionCard key={q.id} q={q} index={q.order} selected={q.chosen} disabled reveal={{ answer: q.answer, explanation: q.explanation }} />
         ))}
-        {shown.length === 0 && <p className="text-center text-muted">Không có câu sai. Xuất sắc! 🎉</p>}
+        {shown.length === 0 && <p className="text-center text-muted">Không có câu sai. Xuất sắc!</p>}
       </div>
     </div>
   );

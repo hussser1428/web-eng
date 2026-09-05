@@ -30,10 +30,10 @@ export function QuestionCard({ q, index, selected, onSelect, disabled, reveal, a
   };
 
   const cls: Record<string, string> = {
-    idle: "border-line hover:border-neon-violet/60 hover:bg-white/5",
-    selected: "border-neon-violet bg-neon-violet/15",
+    idle: "border-line hover:border-accent/60 hover:bg-surface-2",
+    selected: "border-accent bg-accent/15",
     correct: "border-emerald-400 bg-emerald-400/15",
-    wrong: "border-neon-pink bg-neon-pink/15",
+    wrong: "border-danger bg-danger/15",
   };
 
   return (
@@ -60,7 +60,7 @@ export function QuestionCard({ q, index, selected, onSelect, disabled, reveal, a
               onClick={() => !locked && onSelect?.(i)}
               className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-left transition disabled:cursor-default ${cls[st]}`}
             >
-              <span className="font-bold text-neon-cyan">{LABELS[i]}.</span>
+              <span className="font-bold text-info">{LABELS[i]}.</span>
               <span>{c}</span>
             </button>
           );

@@ -32,7 +32,7 @@ export function DrillSetupForm({ sections }: Props) {
   }
 
   const pill = (active: boolean) =>
-    `rounded-xl border px-4 py-3 text-left text-sm font-medium transition ${active ? "border-neon-violet bg-neon-violet/15" : "border-line hover:bg-white/5"}`;
+    `rounded-xl border px-4 py-3 text-left text-sm font-medium transition ${active ? "border-accent bg-accent/15" : "border-line hover:bg-surface-2"}`;
 
   return (
     <div className="card flex flex-col gap-6 p-6">
@@ -56,8 +56,8 @@ export function DrillSetupForm({ sections }: Props) {
           ))}
         </div>
       </fieldset>
-      {error && <p className="text-sm text-neon-pink">{error}</p>}
-      <button type="button" onClick={start} disabled={pending || !section} className="btn-neon rounded-full px-6 py-3 font-bold disabled:opacity-50">
+      {error && <p className="text-sm text-danger">{error}</p>}
+      <button type="button" onClick={start} disabled={pending || !section} className="btn-primary rounded-lg px-6 py-3 font-bold disabled:opacity-50">
         Bắt đầu luyện
       </button>
     </div>

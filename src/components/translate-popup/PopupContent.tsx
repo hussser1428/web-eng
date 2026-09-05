@@ -1,6 +1,7 @@
 "use client";
 
 import type { TranslateResult } from "@/features/translate/translate";
+import { Volume2 } from "lucide-react";
 
 export type PopupData = TranslateResult & { canSave: boolean };
 export type SaveState = "idle" | "saving" | "saved" | "error";
@@ -43,8 +44,8 @@ export function PopupContent({
       <div className="flex items-center gap-2">
         <span className="text-base font-semibold">{w.headword}</span>
         {w.phonetic && <span className="text-muted">/{w.phonetic}/</span>}
-        <button type="button" aria-label="Phát âm" onClick={() => speak(w.headword)} className="rounded-full border border-line px-1.5 text-xs hover:bg-white/10">
-          🔊
+        <button type="button" aria-label="Phát âm" onClick={() => speak(w.headword)} className="rounded-full border border-line p-1 hover:bg-surface-2">
+          <Volume2 size={14} aria-hidden="true" />
         </button>
       </div>
       {w.pos && <p className="text-xs italic text-muted">{w.pos}</p>}
@@ -64,7 +65,7 @@ export function PopupContent({
               type="button"
               disabled={saveState === "saving"}
               onClick={() => onSave(w.id, context)}
-              className="btn-neon rounded-full px-3 py-1 text-xs font-semibold disabled:opacity-50"
+              className="btn-primary rounded-lg px-3 py-1 text-xs font-semibold disabled:opacity-50"
             >
               Lưu từ
             </button>
@@ -72,7 +73,7 @@ export function PopupContent({
         ) : (
           <span className="text-xs text-muted">Đăng nhập để lưu từ</span>
         )}
-        {saveState === "error" && <span className="ml-2 text-xs text-neon-pink">Lưu thất bại</span>}
+        {saveState === "error" && <span className="ml-2 text-xs text-danger">Lưu thất bại</span>}
       </div>
     </div>
   );

@@ -30,8 +30,8 @@ export function NavBar({ user, signOutAction }: Props) {
   const linkClass = (href: string) =>
     `relative rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
       isActive(pathname, href)
-        ? "bg-white/10 text-white after:absolute after:inset-x-4 after:-bottom-0.5 after:h-0.5 after:rounded-full after:bg-gradient-to-r after:from-neon-violet after:to-neon-cyan"
-        : "text-muted hover:bg-white/5 hover:text-white"
+        ? "bg-accent/10 text-white after:absolute after:inset-x-4 after:-bottom-0.5 after:h-0.5 after:rounded-full after:bg-accent"
+        : "text-muted hover:bg-surface-2 hover:text-white"
     }`;
 
   const navLinks = links.map((l) => (
@@ -44,13 +44,13 @@ export function NavBar({ user, signOutAction }: Props) {
     <>
       <span className="truncate text-sm text-muted" title={user.email}>{user.name || user.email}</span>
       <form action={signOutAction}>
-        <button className="rounded-full border border-line px-4 py-1.5 text-sm font-medium text-foreground hover:bg-white/5">Đăng xuất</button>
+        <button className="rounded-full border border-line px-4 py-1.5 text-sm font-medium text-foreground hover:bg-surface-2">Đăng xuất</button>
       </form>
     </>
   ) : (
     <>
-      <Link href="/login" className="rounded-full px-4 py-1.5 text-sm font-medium text-foreground hover:bg-white/5">Đăng nhập</Link>
-      <Link href="/register" className="btn-neon rounded-full px-4 py-1.5 text-sm font-semibold">Đăng ký</Link>
+      <Link href="/login" className="rounded-full px-4 py-1.5 text-sm font-medium text-foreground hover:bg-surface-2">Đăng nhập</Link>
+      <Link href="/register" className="btn-primary rounded-lg px-4 py-1.5 text-sm font-semibold">Đăng ký</Link>
     </>
   );
 
@@ -58,13 +58,13 @@ export function NavBar({ user, signOutAction }: Props) {
     <header className="sticky top-0 z-40 border-b border-line bg-background/70 backdrop-blur-md" data-no-translate>
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3" aria-label="Điều hướng chính">
         <Link href="/" className="text-xl font-extrabold tracking-tight">
-          <span className="text-neon">TOEIC</span> Prep
+          <span className="text-accent">TOEIC</span> Prep
         </Link>
         <div className="hidden items-center gap-1 md:flex">{navLinks}</div>
         <div className="hidden items-center gap-3 md:flex">{account}</div>
         <button
           type="button"
-          className="rounded-full p-2 hover:bg-white/10 md:hidden"
+          className="rounded-full p-2 hover:bg-surface-2 md:hidden"
           aria-label={open ? "Đóng menu" : "Mở menu"}
           aria-expanded={open}
           onClick={() => setOpen((o) => !o)}

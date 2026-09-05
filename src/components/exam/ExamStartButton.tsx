@@ -24,10 +24,10 @@ export function ExamStartButton({ examId }: { examId: string }) {
 
   return (
     <div className="flex flex-col items-start gap-2">
-      <button type="button" onClick={start} disabled={pending} className="btn-neon rounded-full px-6 py-3 font-bold disabled:opacity-50">
-        {pending ? "Đang chuẩn bị…" : "Bắt đầu làm bài 🚀"}
+      <button type="button" onClick={start} disabled={pending} className="btn-primary rounded-lg px-6 py-3 font-bold disabled:opacity-50">
+        {pending ? "Đang chuẩn bị…" : "Bắt đầu làm bài"}
       </button>
-      {error && <p className="text-sm text-neon-pink">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
     </div>
   );
 }

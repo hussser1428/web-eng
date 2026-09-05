@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Target } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -18,7 +19,10 @@ export default async function ExamListPage() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-3xl font-extrabold">🎯 Thi thử TOEIC</h1>
+        <h1 className="flex items-center gap-2.5 text-3xl font-extrabold">
+          <Target size={26} className="text-accent-text" aria-hidden="true" />
+          Thi thử TOEIC
+        </h1>
         <p className="mt-2 text-muted">Làm bài như thi thật: audio phát một lần, phần đọc 75 phút, nộp bài xem điểm ước tính.</p>
       </header>
       {exams.length === 0 ? (
@@ -27,7 +31,7 @@ export default async function ExamListPage() {
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {exams.map((e) => (
             <li key={e.id}>
-              <Link href={`/exam/${e.id}`} className="card block p-5 transition hover:-translate-y-0.5 hover:border-neon-violet/60">
+              <Link href={`/exam/${e.id}`} className="card block p-5 transition hover:-translate-y-0.5 hover:border-accent/60">
                 <h2 className="text-lg font-bold">{e.title}</h2>
                 <p className="mt-1 text-sm text-muted">{e._count.questions} câu{e._count.questions < 200 ? " · đề rút gọn" : ""}</p>
               </Link>

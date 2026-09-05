@@ -141,19 +141,19 @@ export function ExamRunner({ attempt, sections, timeLimits }: Props) {
         <QuestionCard key={q.id} q={q} index={q.order} selected={answers[q.id] ?? null} onSelect={(i) => choose(q.id, i)} autoPlayAudio={phase === "listening"} />
 
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <button type="button" onClick={() => toggleFlag(q.id)} className={`rounded-full border px-4 py-2 text-sm font-medium ${flags.includes(q.id) ? "border-amber-400 bg-amber-400/15 text-amber-300" : "border-line hover:bg-white/5"}`}>
+          <button type="button" onClick={() => toggleFlag(q.id)} className={`rounded-full border px-4 py-2 text-sm font-medium ${flags.includes(q.id) ? "border-amber-400 bg-amber-400/15 text-amber-300" : "border-line hover:bg-surface-2"}`}>
             {flags.includes(q.id) ? "Bỏ đánh dấu" : "Đánh dấu xem lại"}
           </button>
           <div className="flex gap-2">
-            <button type="button" disabled={idx === 0} onClick={() => setIdx((i) => i - 1)} className="rounded-full border border-line px-4 py-2 text-sm font-medium hover:bg-white/5 disabled:opacity-40">Trước</button>
+            <button type="button" disabled={idx === 0} onClick={() => setIdx((i) => i - 1)} className="rounded-full border border-line px-4 py-2 text-sm font-medium hover:bg-surface-2 disabled:opacity-40">Trước</button>
             {idx < visible.length - 1 ? (
-              <button type="button" onClick={() => setIdx((i) => i + 1)} className="btn-neon rounded-full px-4 py-2 text-sm font-semibold">Câu tiếp</button>
+              <button type="button" onClick={() => setIdx((i) => i + 1)} className="btn-primary rounded-lg px-4 py-2 text-sm font-semibold">Câu tiếp</button>
             ) : phase === "listening" ? (
-              <button type="button" onClick={startReading} className="btn-neon rounded-full px-4 py-2 text-sm font-semibold">Chuyển sang phần đọc</button>
+              <button type="button" onClick={startReading} className="btn-primary rounded-lg px-4 py-2 text-sm font-semibold">Chuyển sang phần đọc</button>
             ) : null}
           </div>
         </div>
-        {error && <p className="text-sm text-neon-pink">{error}</p>}
+        {error && <p className="text-sm text-danger">{error}</p>}
       </div>
 
       <aside className="card w-full p-4 lg:sticky lg:top-20 lg:w-72">
@@ -169,7 +169,7 @@ export function ExamRunner({ attempt, sections, timeLimits }: Props) {
                 aria-label={`Tới câu ${v.order}`}
                 data-flagged={flagged}
                 onClick={() => setIdx(i)}
-                className={`relative h-9 rounded-lg text-xs font-semibold ${i === idx ? "ring-2 ring-neon-cyan" : ""} ${done ? "bg-neon-violet/40" : "bg-surface-2"} ${flagged ? "outline outline-1 outline-amber-400" : ""}`}
+                className={`relative h-9 rounded-lg text-xs font-semibold ${i === idx ? "ring-2 ring-accent" : ""} ${done ? "bg-accent/40" : "bg-surface-2"} ${flagged ? "outline outline-1 outline-amber-400" : ""}`}
               >
                 {v.order}
               </button>
@@ -177,7 +177,7 @@ export function ExamRunner({ attempt, sections, timeLimits }: Props) {
           })}
         </div>
         {phase === "reading" && (
-          <button type="button" onClick={confirmSubmit} disabled={submitting} className="btn-neon mt-4 w-full rounded-full px-4 py-2.5 font-bold disabled:opacity-50">
+          <button type="button" onClick={confirmSubmit} disabled={submitting} className="btn-primary mt-4 w-full rounded-full px-4 py-2.5 font-bold disabled:opacity-50">
             {submitting ? "Đang nộp…" : "Nộp bài"}
           </button>
         )}

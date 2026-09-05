@@ -69,14 +69,13 @@ export function DrillRunner({ attempt }: { attempt: AttemptForClient }) {
     const pct = summary.total ? Math.round((summary.correct / summary.total) * 100) : 0;
     return (
       <section className="card relative mx-auto max-w-lg overflow-hidden p-8 text-center">
-        <div className="glow -top-16 left-1/2 h-40 w-40 -translate-x-1/2 bg-neon-cyan" />
         <div className="relative">
           <p className="text-sm font-semibold uppercase tracking-wider text-muted">Kết quả luyện tập</p>
-          <p className="mt-3 text-6xl font-extrabold text-neon">{summary.correct}/{summary.total}</p>
-          <p className="mt-2 text-muted">{pct >= 80 ? "Tuyệt vời! 🔥" : pct >= 50 ? "Khá ổn, tiếp tục nhé 💪" : "Xem lại giải thích rồi thử lại nào 📚"}</p>
+          <p className="mt-3 text-6xl font-extrabold text-accent">{summary.correct}/{summary.total}</p>
+          <p className="mt-2 text-muted">{pct >= 80 ? "Tuyệt vời!" : pct >= 50 ? "Khá ổn, tiếp tục nhé." : "Xem lại giải thích rồi thử lại nào 📚"}</p>
           <div className="mt-6 flex justify-center gap-3">
-            <Link href="/drill" className="btn-neon rounded-full px-5 py-2 text-sm font-semibold">Luyện tiếp</Link>
-            <Link href={`/attempts/${attempt.id}/result`} className="rounded-full border border-line px-5 py-2 text-sm font-semibold hover:bg-white/5">Xem chi tiết</Link>
+            <Link href="/drill" className="btn-primary rounded-lg px-5 py-2 text-sm font-semibold">Luyện tiếp</Link>
+            <Link href={`/attempts/${attempt.id}/result`} className="rounded-full border border-line px-5 py-2 text-sm font-semibold hover:bg-surface-2">Xem chi tiết</Link>
           </div>
         </div>
       </section>
@@ -88,8 +87,8 @@ export function DrillRunner({ attempt }: { attempt: AttemptForClient }) {
       <div className="mx-auto flex max-w-3xl flex-col gap-4">
         <div className="card flex flex-col items-center gap-4 p-8 text-center">
           <p className="text-lg font-semibold">Bạn đã trả lời hết các câu.</p>
-          {error && <p className="text-sm text-neon-pink">{error}</p>}
-          <button type="button" onClick={finish} disabled={pending} className="btn-neon rounded-full px-6 py-2.5 font-semibold disabled:opacity-50">
+          {error && <p className="text-sm text-danger">{error}</p>}
+          <button type="button" onClick={finish} disabled={pending} className="btn-primary rounded-lg px-6 py-2.5 font-semibold disabled:opacity-50">
             Xem kết quả
           </button>
         </div>
@@ -104,16 +103,16 @@ export function DrillRunner({ attempt }: { attempt: AttemptForClient }) {
         <span>Đúng: <span className="font-semibold text-emerald-300">{correctCount}</span></span>
       </div>
       <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
-        <div className="h-full rounded-full bg-gradient-to-r from-neon-violet to-neon-cyan transition-all" style={{ width: `${((idx + (reveal ? 1 : 0)) / qs.length) * 100}%` }} />
+        <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${((idx + (reveal ? 1 : 0)) / qs.length) * 100}%` }} />
       </div>
       <QuestionCard key={q.id} q={q} index={idx + 1} selected={selected} onSelect={choose} disabled={pending} reveal={reveal ? { answer: reveal.answer, explanation: reveal.explanation } : null} />
       {reveal && (
-        <p className={`text-center text-lg font-bold ${reveal.isCorrect ? "text-emerald-300" : "text-neon-pink"}`}>{reveal.isCorrect ? "Chính xác!" : "Chưa đúng"}</p>
+        <p className={`text-center text-lg font-bold ${reveal.isCorrect ? "text-emerald-300" : "text-danger"}`}>{reveal.isCorrect ? "Chính xác!" : "Chưa đúng"}</p>
       )}
-      {error && <p className="text-center text-sm text-neon-pink">{error}</p>}
+      {error && <p className="text-center text-sm text-danger">{error}</p>}
       <div className="flex justify-end">
-        {reveal && !isLast && <button type="button" onClick={next} className="btn-neon rounded-full px-6 py-2.5 font-semibold">Câu tiếp</button>}
-        {reveal && isLast && <button type="button" onClick={finish} disabled={pending} className="btn-neon rounded-full px-6 py-2.5 font-semibold disabled:opacity-50">Xem kết quả</button>}
+        {reveal && !isLast && <button type="button" onClick={next} className="btn-primary rounded-lg px-6 py-2.5 font-semibold">Câu tiếp</button>}
+        {reveal && isLast && <button type="button" onClick={finish} disabled={pending} className="btn-primary rounded-lg px-6 py-2.5 font-semibold disabled:opacity-50">Xem kết quả</button>}
       </div>
     </div>
   );

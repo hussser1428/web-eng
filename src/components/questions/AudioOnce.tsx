@@ -23,7 +23,7 @@ export function AudioOnce({ src, autoPlay = false, onEnded }: Props) {
         aria-label="Phát audio"
         disabled={state !== "idle"}
         onClick={() => ref.current?.play().then(() => setState("playing"))}
-        className="btn-neon rounded-full px-4 py-1.5 text-sm font-semibold disabled:opacity-40"
+        className="btn-primary rounded-lg px-4 py-1.5 text-sm font-semibold disabled:opacity-40"
       >
         ▶ Phát
       </button>
