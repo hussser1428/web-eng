@@ -1,8 +1,9 @@
 import type { PrismaClient } from "@prisma/client";
 import { getCertificate, getSection, type ScoreResult } from "@/features/certificates";
 import { computeWeakness, type AnswerRow, type RateItem } from "./weakness";
+import { countDueWords } from "@/features/vocab/count-due";
 
-export type DashboardDb = Pick<PrismaClient, "attempt" | "attemptAnswer">;
+export type DashboardDb = Pick<PrismaClient, "attempt" | "attemptAnswer" | "userWord">;
 
 /** Cửa sổ thời gian của bản đồ điểm yếu (spec mục 4.1). */
 export const WINDOW_DAYS = 30;
@@ -23,6 +24,7 @@ export type Dashboard = {
   byTag: RateItem[];
   suggestions: Suggestion[];
   answered: number;
+  vocab: { due: number; saved: number };
 };
 
 export async function loadDashboard(db: DashboardDb, p: { userId: string; certificate: string; now?: Date }): Promise<Dashboard> {
@@ -83,6 +85,8 @@ export async function loadDashboard(db: DashboardDb, p: { userId: string; certif
     return { tag: t.key, section, sectionName: getSection(cert, section)?.name ?? section, correct: t.correct, total: t.total, rate: t.rate };
   });
 
+  const vocab = await countDueWords(db, { userId: p.userId, now });
+
   return {
     certificate: cert.id,
     latest,
@@ -91,5 +95,6 @@ export async function loadDashboard(db: DashboardDb, p: { userId: string; certif
     byTag,
     suggestions,
     answered: answers.filter((a) => a.isCorrect !== null).length,
+    vocab,
   };
 }

@@ -19,6 +19,7 @@ function fakeDb(exams: unknown[], answers: unknown[]) {
   return {
     attempt: { findMany: vi.fn(async () => exams) },
     attemptAnswer: { findMany: vi.fn(async () => answers) },
+    userWord: { count: vi.fn(async () => 0) },
   } as unknown as DashboardDb;
 }
 
@@ -100,5 +101,16 @@ describe("loadDashboard", () => {
     });
     expect(call.orderBy).toEqual({ submittedAt: "desc" });
     expect(call.take).toBe(HISTORY_LIMIT);
+  });
+  it("gộp cả số từ vựng đến hạn vào dashboard", async () => {
+    const count = vi.fn(async () => 0);
+    count.mockResolvedValueOnce(4).mockResolvedValueOnce(30);
+    const db = {
+      attempt: { findMany: vi.fn(async () => []) },
+      attemptAnswer: { findMany: vi.fn(async () => []) },
+      userWord: { count },
+    };
+    const r = await loadDashboard(db as never, { userId: "u1", certificate: "toeic" });
+    expect(r.vocab).toEqual({ due: 4, saved: 30 });
   });
 });

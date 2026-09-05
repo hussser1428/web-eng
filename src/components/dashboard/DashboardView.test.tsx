@@ -11,6 +11,7 @@ const empty: Dashboard = {
   byTag: [],
   suggestions: [],
   answered: 0,
+  vocab: { due: 0, saved: 0 },
 };
 
 const full: Dashboard = {
@@ -24,6 +25,7 @@ const full: Dashboard = {
   byTag: [{ key: "suy luận", correct: 1, total: 5, rate: 0.2 }],
   suggestions: [{ tag: "suy luận", section: "toeic.p7", sectionName: "Part 7 – Đọc hiểu", correct: 1, total: 5, rate: 0.2 }],
   answered: 9,
+  vocab: { due: 0, saved: 0 },
 };
 
 describe("DashboardView", () => {
@@ -45,5 +47,9 @@ describe("DashboardView", () => {
     expect(screen.getByRole("heading", { name: "Theo kỹ năng" })).toBeInTheDocument();
     expect(screen.getByText(/đã làm 9 câu/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /suy luận/ })).toHaveAttribute("href", `/drill?section=toeic.p7&tag=${encodeURIComponent("suy luận")}`);
+  });
+  it("hiện thẻ từ vựng đến hạn", () => {
+    render(<DashboardView name="Thắng" data={{ ...empty, vocab: { due: 5, saved: 20 } }} />);
+    expect(screen.getByRole("link", { name: /Ôn ngay/ })).toBeInTheDocument();
   });
 });
