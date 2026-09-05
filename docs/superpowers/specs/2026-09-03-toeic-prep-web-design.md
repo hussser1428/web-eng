@@ -1,7 +1,7 @@
 # Thiết kế: Web luyện thi TOEIC (Listening & Reading)
 
 Ngày: 2026-09-03
-Trạng thái: đã duyệt ý tưởng, chờ lập kế hoạch triển khai
+Trạng thái: đã duyệt ý tưởng; kế hoạch 1 và giao diện khung đã xong. Cập nhật 2026-09-05: mô hình dữ liệu sẵn chỗ cho nhiều chứng chỉ (xem mục 3.1).
 
 ## 1. Mục tiêu
 
@@ -12,8 +12,9 @@ Ràng buộc quan trọng:
 - Vận hành không tốn phí AI: LLM dùng gói miễn phí (Gemini, Groq, OpenRouter), dịch bằng LibreTranslate tự cài, audio bằng Edge TTS.
 - Nội dung tạo bằng AI phải qua admin duyệt trước khi công khai.
 - Chỉ TOEIC L&R. Không có Speaking/Writing trong phạm vi này, nhưng schema không cản trở việc thêm sau.
+- Dữ liệu câu hỏi, đề thi, lượt làm bài đều gắn mã chứng chỉ để sau này thêm chứng chỉ khác (IELTS, TOEFL dạng trắc nghiệm) mà không sửa schema. Giao diện phiên bản này chỉ hiện TOEIC.
 
-Ngoài phạm vi (không làm ở phiên bản này): đa chứng chỉ, AI chấm Speaking/Writing, lộ trình học tự động, thanh toán, cộng đồng đóng góp nội dung.
+Ngoài phạm vi (không làm ở phiên bản này): giao diện chọn chứng chỉ, AI chấm Speaking/Writing, lộ trình học tự động, thanh toán, cộng đồng đóng góp nội dung.
 
 ## 2. Kiến trúc tổng thể
 
@@ -48,6 +49,19 @@ docs/superpowers/specs/
 
 ## 3. Mô hình dữ liệu
 
+### 3.1 Chứng chỉ và phần thi
+
+Mỗi chứng chỉ có một mã (`certificate`, chuỗi: `"toeic"`, sau này `"ielts"`, ...) và các phần thi (`section`, chuỗi dạng `"<certificate>.<phần>"`: `"toeic.p1"` … `"toeic.p7"`). Không dùng số Part thuần vì chứng chỉ khác không có Part 1–7.
+
+Quy tắc của từng chứng chỉ nằm trong code, thuần TypeScript, không trong database: `src/features/certificates/<mã>.ts` xuất một object `CertificateSpec`:
+
+- `id`, `name` (tên hiển thị).
+- `sections`: danh sách `{ id, name, skill: "listening" | "reading", questionCount, hasAudio, hasImage, choiceCount }`. TOEIC: p1 6 câu (4 lựa chọn, có ảnh và audio), p2 25 (3 lựa chọn, audio), p3 39 và p4 30 (4 lựa chọn, audio), p5 30, p6 16, p7 54 (4 lựa chọn, đọc).
+- `timeLimits`: thời gian mỗi kỹ năng (TOEIC: listening 45 phút chạy theo audio, reading 75 phút).
+- `score(correctBySection)`: nhận số câu đúng theo phần, trả về `{ parts: Record<string, number>, total: number }` (TOEIC: listening 5–495, reading 5–495, tổng cộng hai phần).
+
+`src/features/certificates/index.ts` xuất `getCertificate(id)` và danh sách. Thêm chứng chỉ = thêm một file + dữ liệu câu hỏi; không cần migration.
+
 ### Người dùng
 
 - `User`: id, email, passwordHash (nullable nếu đăng nhập Google), name, role (`USER` | `ADMIN`), createdAt.
@@ -56,7 +70,7 @@ docs/superpowers/specs/
 ### Ngân hàng câu hỏi
 
 - `Question`:
-  - id, part (1–7), status (`DRAFT` | `PUBLISHED`)
+  - id, certificate (chuỗi, mặc định `"toeic"`), section (chuỗi, ví dụ `"toeic.p5"`; index), status (`DRAFT` | `PUBLISHED`)
   - `groupId` (nullable): các câu cùng đoạn hội thoại (Part 3, 4) hoặc cùng đoạn văn (Part 6, 7) trỏ về một `QuestionGroup`
   - stem (nội dung câu hỏi; Part 1, 2 có thể rỗng vì chỉ có audio)
   - choices: JSON mảng 3 hoặc 4 lựa chọn
@@ -67,12 +81,12 @@ docs/superpowers/specs/
   - transcript (nullable): kịch bản audio, dùng cho giải thích và tạo TTS
   - source: `AI` | `IMPORT` | `MANUAL`
   - createdAt, updatedAt
-- `QuestionGroup`: id, part, passage (văn bản Part 6, 7) hoặc transcript (Part 3, 4), audioUrl, imageUrl.
-- `Exam`: id, title, status, createdAt. `ExamQuestion`: examId, questionId, order. Đề đủ 200 câu: Part 1: 6, Part 2: 25, Part 3: 39, Part 4: 30, Part 5: 30, Part 6: 16, Part 7: 54.
+- `QuestionGroup`: id, certificate, section, passage (văn bản Part 6, 7) hoặc transcript (Part 3, 4), audioUrl, imageUrl.
+- `Exam`: id, certificate, title, status, createdAt. `ExamQuestion`: examId, questionId, order. Số câu mỗi phần lấy từ `CertificateSpec.sections` (TOEIC đủ 200 câu: p1 6, p2 25, p3 39, p4 30, p5 30, p6 16, p7 54).
 
 ### Lượt làm bài
 
-- `Attempt`: id, userId, type (`EXAM` | `DRILL`), examId (nullable), startedAt, submittedAt (nullable), listeningScore, readingScore, totalScore (nullable cho drill), config (JSON: part, skillTags, số câu cho drill).
+- `Attempt`: id, userId, certificate, type (`EXAM` | `DRILL`), examId (nullable), startedAt, submittedAt (nullable), scores (JSON `{ parts: Record<string, number>, total: number }`, null cho drill), config (JSON: section, skillTags, số câu cho drill). Index (userId, certificate, submittedAt).
 - `AttemptAnswer`: attemptId, questionId, chosen (nullable nếu bỏ trống), isCorrect, order.
 
 ### Từ vựng
@@ -94,21 +108,22 @@ docs/superpowers/specs/
 
 ### 4.1 Dashboard (`/`)
 
-- Điểm TOEIC ước tính từ lần thi thử gần nhất.
-- Bản đồ điểm yếu: biểu đồ tỷ lệ đúng theo Part và theo skillTag trong 30 ngày.
+- Mọi số liệu lọc theo chứng chỉ đang ôn (phiên bản này cố định `toeic`).
+- Điểm ước tính từ lần thi thử gần nhất (`Attempt.scores`).
+- Bản đồ điểm yếu: biểu đồ tỷ lệ đúng theo section và theo skillTag trong 30 ngày.
 - Gợi ý hôm nay: ba skillTag có tỷ lệ đúng thấp nhất (tối thiểu 5 câu đã làm), mỗi gợi ý là link mở drill tương ứng.
 - Số từ đến hạn ôn, link sang trang từ vựng.
 
 ### 4.2 Thi thử (`/exam`, `/exam/[id]`, `/exam/[id]/result`)
 
-- Danh sách đề đã đăng.
-- Màn làm bài: Listening chạy audio tự động, mỗi audio phát một lần, không cho tua lại; hết Listening chuyển sang Reading có đồng hồ 75 phút. Cho phép đánh dấu câu để xem lại trong phần Reading.
+- Danh sách đề đã đăng của chứng chỉ đang ôn.
+- Màn làm bài đọc cấu trúc và thời gian từ `CertificateSpec`: phần có audio chạy audio tự động, mỗi audio phát một lần, không cho tua lại; hết phần nghe chuyển sang phần đọc có đồng hồ (TOEIC: 75 phút). Cho phép đánh dấu câu để xem lại trong phần Reading.
 - Câu trả lời được lưu vào localStorage sau mỗi lần chọn và đồng bộ lên server mỗi 30 giây; nộp lại khi có mạng nếu mất kết nối.
 - Kết quả: điểm từng phần, tổng, danh sách câu với đáp án và giải thích, lọc theo câu sai.
 
 ### 4.3 Drill (`/drill`)
 
-- Chọn Part, tùy chọn skillTag, số câu (10, 20, 30).
+- Chọn section (hiển thị theo tên trong `CertificateSpec`), tùy chọn skillTag, số câu (10, 20, 30).
 - Câu hỏi lấy ngẫu nhiên trong câu đã đăng, ưu tiên câu người dùng chưa làm hoặc đã làm sai.
 - Sau mỗi câu hiện ngay đúng/sai và giải thích. Kết thúc có tổng kết.
 
@@ -144,7 +159,7 @@ docs/superpowers/specs/
 
 ### 4.7 Quản trị (`/admin`, chỉ `ADMIN`)
 
-- **Câu hỏi**: bảng lọc theo Part, trạng thái, nguồn. Sửa, duyệt, đăng, gỡ.
+- **Câu hỏi**: bảng lọc theo chứng chỉ, section, trạng thái, nguồn. Sửa, duyệt, đăng, gỡ.
 - **Tạo bằng AI**: chọn Part, skillTag, số lượng (tối đa 20 mỗi lô), giọng TTS. Xem tiến trình, kết quả vào `DRAFT`.
 - **Nhập từ file**: JSON hoặc CSV theo schema công bố; kiểm tra Zod, báo lỗi theo dòng.
 - **Dán thủ công**: form tạo một câu hoặc một nhóm câu, tải audio/ảnh lên hoặc bấm tạo TTS từ transcript.
@@ -169,7 +184,7 @@ Giấy phép nội dung: bài lấy từ nguồn mở (Project Gutenberg, VOA Le
 
 Đặt trong `src/scoring/`, thuần TypeScript, không phụ thuộc database.
 
-- **Quy đổi TOEIC**: bảng tra số câu đúng (0–100) sang điểm 5–495 cho mỗi phần, dựa trên bảng ước lượng công khai. Tổng là cộng hai phần.
+- **Quy đổi điểm**: do `CertificateSpec.score` của từng chứng chỉ đảm nhiệm. TOEIC: bảng tra số câu đúng (0–100) sang điểm 5–495 cho mỗi kỹ năng, dựa trên bảng ước lượng công khai; tổng là cộng hai phần.
 - **Điểm yếu**: với mỗi skillTag, tỷ lệ đúng = số câu đúng / số câu đã làm trong 30 ngày. Chỉ xét tag có ít nhất 5 câu. Sắp xếp tăng dần.
 - **SM-2**: chất lượng trả lời q (0–5): quên = 1, khó = 3, dễ = 5, trắc nghiệm đúng = 4, sai = 1. Cập nhật easeFactor, interval, repetitions theo công thức SM-2 chuẩn; interval đầu 1 ngày, lần hai 6 ngày.
 - **Chọn câu drill**: trọng số ưu tiên: chưa làm (3), làm sai gần nhất (2), làm đúng (1); rút ngẫu nhiên theo trọng số.
@@ -195,7 +210,7 @@ Giấy phép nội dung: bài lấy từ nguồn mở (Project Gutenberg, VOA Le
 
 1. Khung dự án: Next.js, Prisma, Postgres, Auth.js, layout, vai trò admin.
 2. Từ điển nội bộ: script nhập StarDict, bảng `Word`, popup dịch với tra từ và LibreTranslate, cache.
-3. Ngân hàng câu hỏi: schema, nhập từ file, drill, thi thử, chấm điểm, trang kết quả.
+3. Ngân hàng câu hỏi: `CertificateSpec` cho TOEIC, schema, nhập từ file, drill, thi thử, chấm điểm, trang kết quả.
 4. Dashboard và bản đồ điểm yếu.
 5. Từ vựng: lưu từ, ôn thẻ SM-2, trắc nghiệm hai chiều.
 6. Đọc song ngữ: schema, nhập từ file, trang đọc hai cột và mobile.
