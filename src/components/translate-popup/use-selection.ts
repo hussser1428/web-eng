@@ -31,7 +31,8 @@ export function useSelection(): SelectionInfo | null {
     };
 
     const onUp = (e: MouseEvent | TouchEvent) => {
-      if ((e.target as Element | null)?.closest?.("[data-translate-popup]")) return;
+      const t = e.target as Element | null;
+      if (t?.closest?.("[data-translate-popup]")) return;
       if (timer) clearTimeout(timer);
       timer = setTimeout(read, 150);
     };
