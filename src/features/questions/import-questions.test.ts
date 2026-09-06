@@ -38,6 +38,8 @@ describe("questionFileSchema", () => {
   it("từ chối answer vượt số lựa chọn", () => {
     const r = questionFileSchema.safeParse({ questions: [{ ...base.questions[0], answer: 4 }] });
     expect(r.success).toBe(false);
+    // Lỗi phải trỏ đúng trường answer thì thông báo mới chỉ được chỗ sai cho người nhập file.
+    if (!r.success) expect(r.error.issues[0].path.join(".")).toBe("questions.0.answer");
   });
 });
 

@@ -258,7 +258,7 @@ describe("importAction", () => {
   it("liệt kê lỗi zod kèm đường dẫn trường", async () => {
     const r = await importAction(null, formNhap({ json: JSON.stringify({ questions: [{ ...cauMau, answer: 9 }] }) }));
 
-    expect(r).toEqual({ ok: false, issues: ["questions.0: answer phải nhỏ hơn số lựa chọn"] });
+    expect(r).toEqual({ ok: false, issues: ["questions.0.answer: answer phải nhỏ hơn số lựa chọn"] });
     expect(create).not.toHaveBeenCalled();
   });
 

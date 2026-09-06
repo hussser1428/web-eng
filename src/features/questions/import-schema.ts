@@ -13,7 +13,7 @@ const questionItem = z
     imageUrl: z.string().url().optional(),
     transcript: z.string().max(5000).optional(),
   })
-  .refine((q) => q.answer < q.choices.length, { message: "answer phải nhỏ hơn số lựa chọn" });
+  .refine((q) => q.answer < q.choices.length, { path: ["answer"], message: "answer phải nhỏ hơn số lựa chọn" });
 
 export const questionFileSchema = z.object({
   certificate: z.string().min(1).default("toeic"),
