@@ -3,6 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
+import { getCertificate, getSection } from "@/features/certificates";
+import { buildExam } from "@/features/admin/build-exam";
+import { setExamStatus } from "@/features/admin/set-exam-status";
 import { setQuestionStatus } from "@/features/admin/set-question-status";
 import { updateQuestion } from "@/features/admin/update-question";
 import { updateQuestionSchema } from "@/features/admin/update-question-schema";
@@ -122,4 +125,42 @@ export async function importAction(_prev: ImportState | null, formData: FormData
   } catch (e) {
     return { ok: false, issues: [dichLoiNhap((e as Error).message)] };
   }
+}
+
+export type BuildExamState =
+  | { ok: true; examId: string }
+  | { ok: false; message: string; shortage?: Array<{ section: string; name: string; need: number; have: number }> };
+
+/** Ghép một đề mới từ kho câu đã đăng. Thiếu câu thì trả bảng Part/cần/có chứ không tạo đề lệch. */
+export async function buildExamAction(_prev: BuildExamState | null, formData: FormData): Promise<BuildExamState> {
+  await requireAdmin("action");
+
+  const title = String(formData.get("title") ?? "").trim();
+  if (!title) return { ok: false, message: "Nhập tên đề." };
+
+  const r = await buildExam(prisma, { title });
+  if (!r.ok) {
+    const cert = getCertificate("toeic");
+    return {
+      ok: false,
+      message: "Chưa đủ câu đã đăng để ghép đề.",
+      shortage: r.shortage.map((s) => ({ ...s, name: getSection(cert, s.section)?.name ?? s.section })),
+    };
+  }
+
+  revalidatePath("/admin/exams");
+  return { ok: true, examId: r.examId };
+}
+
+/** Đăng hoặc gỡ một đề. Giá trị lạ thì bỏ qua, không đoán ý. */
+export async function setExamStatusAction(formData: FormData): Promise<void> {
+  await requireAdmin("action");
+
+  const id = String(formData.get("id") ?? "");
+  const status = formData.get("status");
+  if (!id || (status !== "PUBLISHED" && status !== "DRAFT")) return;
+
+  await setExamStatus(prisma, { id, status });
+  revalidatePath("/admin/exams");
+  revalidatePath("/exam");
 }

@@ -11,18 +11,19 @@ const update = vi.fn();
 const create = vi.fn();
 const groupCreate = vi.fn();
 const examCreate = vi.fn();
+const examUpdate = vi.fn();
 const examQuestionCreateMany = vi.fn();
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     question: {
-      findMany: () => findMany(),
+      findMany: (a: unknown) => findMany(a),
       updateMany: (a: unknown) => updateMany(a),
       findUnique: (a: unknown) => findUnique(a),
       update: (a: unknown) => update(a),
       create: (a: unknown) => create(a),
     },
     questionGroup: { create: (a: unknown) => groupCreate(a) },
-    exam: { create: (a: unknown) => examCreate(a) },
+    exam: { create: (a: unknown) => examCreate(a), update: (a: unknown) => examUpdate(a) },
     examQuestion: { createMany: (a: unknown) => examQuestionCreateMany(a) },
   },
 }));
@@ -30,7 +31,7 @@ vi.mock("@/lib/prisma", () => ({
 const revalidatePath = vi.fn();
 vi.mock("next/cache", () => ({ revalidatePath: (p: string) => revalidatePath(p) }));
 
-import { setStatusAction, updateQuestionAction, importAction } from "./actions";
+import { setStatusAction, updateQuestionAction, importAction, buildExamAction, setExamStatusAction } from "./actions";
 
 function form(ids: string[], status: string) {
   const fd = new FormData();
@@ -293,5 +294,116 @@ describe("importAction", () => {
     expect(group).toEqual({ ok: false, issues: ["Câu hỏi trỏ tới nhóm chưa khai báo: nope."] });
 
     expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+/** Số câu mỗi phần TOEIC, dùng để giả lập kho câu đã đăng vừa đủ. */
+const CAN: Record<string, number> = {
+  "toeic.p1": 6,
+  "toeic.p2": 25,
+  "toeic.p3": 39,
+  "toeic.p4": 30,
+  "toeic.p5": 30,
+  "toeic.p6": 16,
+  "toeic.p7": 54,
+};
+
+/** Trả đúng số câu đã đăng cho từng phần; `thieu` giảm số câu của một phần để dựng cảnh thiếu. */
+function khoDaDang(thieu: Record<string, number> = {}) {
+  return async (a: { where: { section: string } }) => {
+    const s = a.where.section;
+    const n = thieu[s] ?? CAN[s];
+    return Array.from({ length: n }, (_, i) => ({ id: `${s}#${i}`, groupId: null, createdAt: new Date(2026, 0, 1, 0, 0, i) }));
+  };
+}
+
+describe("buildExamAction", () => {
+  beforeEach(() => {
+    authMock.mockReset();
+    findMany.mockReset();
+    examCreate.mockReset();
+    examQuestionCreateMany.mockReset();
+    revalidatePath.mockReset();
+    authMock.mockResolvedValue({ user: { id: "1", role: "ADMIN" } });
+    findMany.mockImplementation(khoDaDang());
+    examCreate.mockResolvedValue({ id: "e1" });
+    examQuestionCreateMany.mockResolvedValue({ count: 200 });
+  });
+
+  function formGhep(title: string) {
+    const fd = new FormData();
+    fd.set("title", title);
+    return fd;
+  }
+
+  it("ném FORBIDDEN khi không phải admin", async () => {
+    authMock.mockResolvedValue({ user: { id: "1", role: "USER" } });
+
+    await expect(buildExamAction(null, formGhep("Đề 1"))).rejects.toThrow("FORBIDDEN");
+    expect(examCreate).not.toHaveBeenCalled();
+  });
+
+  it("báo lỗi khi chưa nhập tên đề", async () => {
+    await expect(buildExamAction(null, formGhep("   "))).resolves.toEqual({ ok: false, message: "Nhập tên đề." });
+    expect(examCreate).not.toHaveBeenCalled();
+  });
+
+  it("ghép xong thì trả mã đề và làm mới trang", async () => {
+    await expect(buildExamAction(null, formGhep("Đề TOEIC số 1"))).resolves.toEqual({ ok: true, examId: "e1" });
+
+    expect(examCreate).toHaveBeenCalledWith({ data: { certificate: "toeic", title: "Đề TOEIC số 1", status: "DRAFT" } });
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/exams");
+  });
+
+  it("kèm tên Part khi thiếu câu và không tạo đề", async () => {
+    findMany.mockImplementation(khoDaDang({ "toeic.p5": 20 }));
+
+    await expect(buildExamAction(null, formGhep("Đề 1"))).resolves.toEqual({
+      ok: false,
+      message: "Chưa đủ câu đã đăng để ghép đề.",
+      shortage: [{ section: "toeic.p5", name: "Part 5 – Hoàn thành câu", need: 30, have: 20 }],
+    });
+    expect(examCreate).not.toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe("setExamStatusAction", () => {
+  beforeEach(() => {
+    authMock.mockReset();
+    examUpdate.mockReset();
+    revalidatePath.mockReset();
+    authMock.mockResolvedValue({ user: { id: "1", role: "ADMIN" } });
+    examUpdate.mockResolvedValue({});
+  });
+
+  function formDe(id: string, status: string) {
+    const fd = new FormData();
+    fd.set("id", id);
+    fd.set("status", status);
+    return fd;
+  }
+
+  it("ném FORBIDDEN khi không phải admin", async () => {
+    authMock.mockResolvedValue({ user: { id: "1", role: "USER" } });
+
+    await expect(setExamStatusAction(formDe("e1", "PUBLISHED"))).rejects.toThrow("FORBIDDEN");
+    expect(examUpdate).not.toHaveBeenCalled();
+  });
+
+  it("từ chối status lạ và thiếu mã đề", async () => {
+    await setExamStatusAction(formDe("e1", "ARCHIVED"));
+    await setExamStatusAction(formDe("", "PUBLISHED"));
+
+    expect(examUpdate).not.toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("đăng đề rồi làm mới cả trang quản trị lẫn trang thi", async () => {
+    await setExamStatusAction(formDe("e1", "PUBLISHED"));
+
+    expect(examUpdate).toHaveBeenCalledWith({ where: { id: "e1" }, data: { status: "PUBLISHED" } });
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/exams");
+    expect(revalidatePath).toHaveBeenCalledWith("/exam");
   });
 });
