@@ -13,6 +13,9 @@ const groupCreate = vi.fn();
 const examCreate = vi.fn();
 const examUpdate = vi.fn();
 const examQuestionCreateMany = vi.fn();
+const jobCreate = vi.fn();
+const jobUpdate = vi.fn();
+const jobFindUnique = vi.fn();
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     question: {
@@ -25,13 +28,29 @@ vi.mock("@/lib/prisma", () => ({
     questionGroup: { create: (a: unknown) => groupCreate(a) },
     exam: { create: (a: unknown) => examCreate(a), update: (a: unknown) => examUpdate(a) },
     examQuestion: { createMany: (a: unknown) => examQuestionCreateMany(a) },
+    generationJob: {
+      create: (a: unknown) => jobCreate(a),
+      update: (a: unknown) => jobUpdate(a),
+      findUnique: (a: unknown) => jobFindUnique(a),
+    },
   },
 }));
+
+const llmMock = vi.fn();
+vi.mock("@/lib/providers/llm", () => ({ getLlmProvider: () => llmMock() }));
 
 const revalidatePath = vi.fn();
 vi.mock("next/cache", () => ({ revalidatePath: (p: string) => revalidatePath(p) }));
 
-import { setStatusAction, updateQuestionAction, importAction, buildExamAction, setExamStatusAction } from "./actions";
+import {
+  setStatusAction,
+  updateQuestionAction,
+  importAction,
+  buildExamAction,
+  setExamStatusAction,
+  generateAction,
+  retryJobAction,
+} from "./actions";
 
 function form(ids: string[], status: string) {
   const fd = new FormData();
@@ -405,5 +424,143 @@ describe("setExamStatusAction", () => {
     expect(examUpdate).toHaveBeenCalledWith({ where: { id: "e1" }, data: { status: "PUBLISHED" } });
     expect(revalidatePath).toHaveBeenCalledWith("/admin/exams");
     expect(revalidatePath).toHaveBeenCalledWith("/exam");
+  });
+});
+
+const generateJson = vi.fn();
+
+/** Dựng lại cảnh chung: admin thật, LLM giả trả đúng một câu Part 5 hợp lệ. */
+function chuanBiSinh() {
+  authMock.mockReset();
+  llmMock.mockReset();
+  generateJson.mockReset();
+  jobCreate.mockReset();
+  jobUpdate.mockReset();
+  jobFindUnique.mockReset();
+  create.mockReset();
+  groupCreate.mockReset();
+  revalidatePath.mockReset();
+  authMock.mockResolvedValue({ user: { id: "u1", role: "ADMIN" } });
+  llmMock.mockReturnValue({ generateJson });
+  generateJson.mockResolvedValue({ certificate: "toeic", questions: [cauMau] });
+  jobCreate.mockResolvedValue({ id: "j1" });
+  jobUpdate.mockResolvedValue({});
+  create.mockResolvedValue({ id: "q1" });
+}
+
+function formSinh(p: Record<string, string> = {}) {
+  const fd = new FormData();
+  for (const [k, v] of Object.entries({ section: "toeic.p5", count: "5", skillTag: "", ...p })) fd.set(k, v);
+  return fd;
+}
+
+describe("generateAction", () => {
+  beforeEach(chuanBiSinh);
+
+  it("ném FORBIDDEN khi không phải admin", async () => {
+    authMock.mockResolvedValue({ user: { id: "u1", role: "USER" } });
+
+    await expect(generateAction(null, formSinh())).rejects.toThrow("FORBIDDEN");
+    expect(jobCreate).not.toHaveBeenCalled();
+  });
+
+  it("báo chưa cấu hình khi thiếu LLM_API_KEY và không tạo job", async () => {
+    llmMock.mockReturnValue(null);
+
+    await expect(generateAction(null, formSinh())).resolves.toBe("Chưa cấu hình LLM (LLM_API_KEY)");
+    expect(jobCreate).not.toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("từ chối Part chưa hỗ trợ và số câu ngoài 1–10", async () => {
+    const loi = "Chọn Part 5, 6 hoặc 7 và số câu từ 1 đến 10.";
+    await expect(generateAction(null, formSinh({ section: "toeic.p1" }))).resolves.toBe(loi);
+    await expect(generateAction(null, formSinh({ count: "11" }))).resolves.toBe(loi);
+    await expect(generateAction(null, formSinh({ count: "0" }))).resolves.toBe(loi);
+
+    expect(jobCreate).not.toHaveBeenCalled();
+  });
+
+  it("sinh xong thì lưu câu nháp nguồn AI, báo số câu và làm mới trang", async () => {
+    await expect(generateAction(null, formSinh({ skillTag: "grammar.tense" }))).resolves.toBe("Đã tạo 1 câu nháp");
+
+    expect(jobCreate.mock.calls[0][0].data).toMatchObject({
+      status: "RUNNING",
+      createdById: "u1",
+      params: { certificate: "toeic", section: "toeic.p5", count: 5, skillTag: "grammar.tense" },
+    });
+    expect(create.mock.calls[0][0].data).toMatchObject({ status: "DRAFT", source: "AI" });
+    expect(jobUpdate.mock.calls[0][0].data).toMatchObject({ status: "DONE", resultCount: 1 });
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/generate");
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/questions");
+    expect(revalidatePath).toHaveBeenCalledWith("/admin");
+  });
+
+  it("ô kỹ năng bỏ trống thì không ghim tag nào", async () => {
+    await generateAction(null, formSinh());
+
+    expect(jobCreate.mock.calls[0][0].data.params).toMatchObject({ skillTag: null });
+  });
+
+  it("đổi mã lỗi của LLM sang thông báo tiếng Việt", async () => {
+    generateJson.mockRejectedValue(new Error("LLM_RATE_LIMITED"));
+    await expect(generateAction(null, formSinh())).resolves.toBe("Hết hạn mức, thử lại sau vài phút");
+    expect(jobUpdate.mock.calls[0][0].data).toMatchObject({ status: "FAILED", error: "LLM_RATE_LIMITED" });
+
+    chuanBiSinh();
+    generateJson.mockResolvedValue({ khong: "phai-cau-hoi" });
+    await expect(generateAction(null, formSinh())).resolves.toBe("Model trả về JSON không hợp lệ, hãy thử lại");
+
+    chuanBiSinh();
+    generateJson.mockRejectedValue(new Error("LLM_UNAVAILABLE"));
+    await expect(generateAction(null, formSinh())).resolves.toBe("Không gọi được LLM");
+  });
+
+  it("mã lỗi lạ vẫn hiện ra chứ không nuốt mất", async () => {
+    generateJson.mockRejectedValue(new Error("LO_GI_DO"));
+
+    await expect(generateAction(null, formSinh())).resolves.toBe("Sinh thất bại: LO_GI_DO");
+  });
+});
+
+describe("retryJobAction", () => {
+  beforeEach(chuanBiSinh);
+
+  function formChayLai(jobId: string) {
+    const fd = new FormData();
+    fd.set("jobId", jobId);
+    return fd;
+  }
+
+  it("ném FORBIDDEN khi không phải admin", async () => {
+    authMock.mockResolvedValue({ user: { id: "u1", role: "USER" } });
+
+    await expect(retryJobAction(formChayLai("j0"))).rejects.toThrow("FORBIDDEN");
+    expect(jobFindUnique).not.toHaveBeenCalled();
+  });
+
+  it("dùng lại params của job cũ để tạo job mới", async () => {
+    jobFindUnique.mockResolvedValue({
+      id: "j0",
+      params: { certificate: "toeic", section: "toeic.p7", count: 3, skillTag: "reading.detail" },
+    });
+
+    await retryJobAction(formChayLai("j0"));
+
+    expect(jobFindUnique).toHaveBeenCalledWith({ where: { id: "j0" } });
+    expect(jobCreate.mock.calls[0][0].data).toMatchObject({
+      params: { section: "toeic.p7", count: 3, skillTag: "reading.detail" },
+    });
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/generate");
+  });
+
+  it("job không tồn tại hoặc params hỏng thì im lặng bỏ qua", async () => {
+    jobFindUnique.mockResolvedValue(null);
+    await expect(retryJobAction(formChayLai("khong-co"))).resolves.toBeUndefined();
+
+    jobFindUnique.mockResolvedValue({ id: "j0", params: { section: "toeic.p1", count: 99 } });
+    await expect(retryJobAction(formChayLai("j0"))).resolves.toBeUndefined();
+
+    expect(jobCreate).not.toHaveBeenCalled();
   });
 });

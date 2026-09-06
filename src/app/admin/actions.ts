@@ -1,10 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { getLlmProvider } from "@/lib/providers/llm";
 import { requireAdmin } from "@/lib/require-admin";
 import { getCertificate, getSection } from "@/features/certificates";
 import { buildExam } from "@/features/admin/build-exam";
+import { generateQuestions, MAX_COUNT } from "@/features/admin/generate-questions";
 import { setExamStatus } from "@/features/admin/set-exam-status";
 import { setQuestionStatus } from "@/features/admin/set-question-status";
 import { updateQuestion } from "@/features/admin/update-question";
@@ -163,4 +166,63 @@ export async function setExamStatusAction(formData: FormData): Promise<void> {
   await setExamStatus(prisma, { id, status });
   revalidatePath("/admin/exams");
   revalidatePath("/exam");
+}
+
+const LOI_SINH: Record<string, string> = {
+  LLM_RATE_LIMITED: "Hết hạn mức, thử lại sau vài phút",
+  LLM_BAD_JSON: "Model trả về JSON không hợp lệ, hãy thử lại",
+  LLM_UNAVAILABLE: "Không gọi được LLM",
+  UNSUPPORTED_SECTION: "Chỉ hỗ trợ Part 5, 6, 7",
+};
+
+const sinhSchema = z.object({
+  // Part 1–4 cần audio/ảnh nên chưa sinh được; chặn ở đây thay vì để prompt ném lỗi.
+  section: z.enum(["toeic.p5", "toeic.p6", "toeic.p7"]),
+  count: z.coerce.number().int().min(1).max(MAX_COUNT),
+  // Ô để trống gửi lên chuỗi rỗng, params của job cũ lưu `null`: cả hai đều nghĩa là không ghim kỹ năng.
+  skillTag: z.string().trim().min(1).optional().catch(undefined),
+});
+
+/** Gọi LLM rồi đổi kết quả thành một dòng tiếng Việt. Dùng chung cho nút "Sinh" và nút "Chạy lại". */
+async function chaySinh(createdById: string, input: z.infer<typeof sinhSchema>): Promise<string> {
+  const llm = getLlmProvider();
+  if (!llm) return "Chưa cấu hình LLM (LLM_API_KEY)";
+
+  const r = await generateQuestions(prisma, llm, { ...input, createdById });
+
+  // Làm mới cả khi thất bại: bảng lịch sử job đã có thêm dòng mới.
+  revalidatePath("/admin/generate");
+  revalidatePath("/admin/questions");
+  revalidatePath("/admin");
+
+  if (r.status === "FAILED") return LOI_SINH[r.error ?? ""] ?? `Sinh thất bại: ${r.error}`;
+  return `Đã tạo ${r.resultCount} câu nháp`;
+}
+
+/** Sinh một lô câu hỏi bằng LLM, kết quả vào nháp. Trả chuỗi thông báo cho `useActionState`. */
+export async function generateAction(_prev: string | null, formData: FormData): Promise<string | null> {
+  const admin = await requireAdmin("action");
+
+  const parsed = sinhSchema.safeParse({
+    section: formData.get("section"),
+    count: formData.get("count"),
+    skillTag: formData.get("skillTag"),
+  });
+  if (!parsed.success) return "Chọn Part 5, 6 hoặc 7 và số câu từ 1 đến 10.";
+
+  return chaySinh(admin.id, parsed.data);
+}
+
+/** Chạy lại một job hỏng bằng đúng tham số cũ (tạo job mới). Job lạ thì bỏ qua, không ném lỗi ra giao diện. */
+export async function retryJobAction(formData: FormData): Promise<void> {
+  const admin = await requireAdmin("action");
+
+  const id = String(formData.get("jobId") ?? "");
+  if (!id) return;
+
+  const job = await prisma.generationJob.findUnique({ where: { id } });
+  const parsed = sinhSchema.safeParse(job?.params);
+  if (!parsed.success) return;
+
+  await chaySinh(admin.id, parsed.data);
 }
