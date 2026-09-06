@@ -204,3 +204,24 @@ model AttemptAnswer {
   @@unique([attemptId, questionId])
   @@index([attemptId, order])
 }
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+}
+
+model GenerationJob {
+  id          String    @id @default(cuid())
+  type        String // "questions"
+  params      Json // { certificate, section, count, skillTag }
+  status      JobStatus @default(PENDING)
+  error       String?
+  resultCount Int       @default(0)
+  createdById String
+  createdAt   DateTime  @default(now())
+  finishedAt  DateTime?
+
+  @@index([createdAt])
+}
