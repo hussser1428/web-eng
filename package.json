@@ -15,7 +15,8 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:import-dict": "tsx prisma/seed/import-stardict.ts",
-    "db:import-questions": "tsx prisma/seed/import-questions.ts"
+    "db:import-questions": "tsx prisma/seed/import-questions.ts",
+    "db:make-admin": "tsx prisma/seed/make-admin.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",

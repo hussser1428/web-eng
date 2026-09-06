@@ -1,5 +1,7 @@
 # Kế hoạch 5: Trang quản trị và sinh câu hỏi bằng AI
 
+> Trạng thái: ĐÃ HOÀN THÀNH 2026-09-06 trên nhánh plan-5-admin.
+
 > **Dành cho agent thực thi:** BẮT BUỘC dùng sub-skill `superpowers:subagent-driven-development` (khuyến nghị) hoặc `superpowers:executing-plans` để làm theo từng task. Các bước dùng cú pháp checkbox (`- [ ]`) để đánh dấu.
 
 **Mục tiêu:** Admin quản lý được kho câu hỏi ngay trên web thay vì chỉ qua dòng lệnh: xem, lọc, sửa, đăng, gỡ; nhập file JSON; ghép đề thi tự động từ câu đã đăng; và sinh câu hỏi Part 5, 6, 7 bằng LLM gói miễn phí, kết quả vào `DRAFT` chờ duyệt.
@@ -23,6 +25,8 @@ Ghi lại để người thực thi không tự ý làm khác. Các mục đánh
 5. **Ghép đề tự động phải đủ đúng số câu mỗi Part** theo `CertificateSpec`; thiếu thì báo rõ Part nào thiếu bao nhiêu, không tạo đề lệch. Câu có `groupId` được lấy nguyên nhóm.
 6. **Cấp quyền admin bằng script dòng lệnh** (`npm run db:make-admin -- email`), không có giao diện tự phong admin.
 7. **Không làm trong kế hoạch này:** quản lý bài đọc (chưa có bảng `Reading`, thuộc kế hoạch đọc song ngữ), sửa từ điển, tải file audio/ảnh lên, sửa đề thi chọn tay từng câu.
+
+Hai mục đánh dấu *(giả định)* ở trên (2, 3) giữ nguyên như agent lập kế hoạch chọn — thực thi xong không có phản hồi khác từ người dùng nên không đổi.
 
 ## Ràng buộc chung
 
@@ -95,10 +99,10 @@ Mọi task đều phải tuân thủ các điều dưới đây; phần **Yêu c
 - `AdminNav`: đánh dấu đúng link đang mở.
 
 **Bước:**
-- [ ] Viết `make-admin.ts` theo khuôn `import-questions.ts`: nhận email, `prisma.user.update`, in "Đã cấp quyền admin cho ...", không tìm thấy thì báo lỗi và exit 1.
-- [ ] `require-admin.ts` với `vi.mock("@/lib/auth")` và `vi.mock("next/navigation")` trong test.
-- [ ] `layout.tsx`: gọi `requireAdmin()`, render `AdminNav` + `{children}` trong `max-w-6xl`. Đặt `data-no-translate` để popup dịch không nhảy ra khi admin bôi đen nội dung.
-- [ ] Commit: `feat: cấp quyền admin bằng script và khung trang quản trị`.
+- [x] Viết `make-admin.ts` theo khuôn `import-questions.ts`: nhận email, `prisma.user.update`, in "Đã cấp quyền admin cho ...", không tìm thấy thì báo lỗi và exit 1.
+- [x] `require-admin.ts` với `vi.mock("@/lib/auth")` và `vi.mock("next/navigation")` trong test.
+- [x] `layout.tsx`: gọi `requireAdmin()`, render `AdminNav` + `{children}` trong `max-w-6xl`. Đặt `data-no-translate` để popup dịch không nhảy ra khi admin bôi đen nội dung.
+- [x] Commit: `feat: cấp quyền admin bằng script và khung trang quản trị`.
 
 ---
 
@@ -115,9 +119,9 @@ Mọi task đều phải tuân thủ các điều dưới đây; phần **Yêu c
 **Test cần có:** section không có câu vẫn xuất hiện với 0/0; gộp đúng draft/published; bỏ qua section lạ không có trong spec.
 
 **Bước:**
-- [ ] Hàm + test với fake `db.question.groupBy`.
-- [ ] Trang tổng quan: bảng Part | Đã đăng | Nháp | Cần cho một đề; tô `text-danger` khi `published < required`. Ba nút tắt tới `/admin/questions`, `/admin/import`, `/admin/generate`.
-- [ ] Commit: `feat: trang tổng quan kho câu hỏi cho admin`.
+- [x] Hàm + test với fake `db.question.groupBy`.
+- [x] Trang tổng quan: bảng Part | Đã đăng | Nháp | Cần cho một đề; tô `text-danger` khi `published < required`. Ba nút tắt tới `/admin/questions`, `/admin/import`, `/admin/generate`.
+- [x] Commit: `feat: trang tổng quan kho câu hỏi cho admin`.
 
 ---
 
@@ -138,11 +142,11 @@ Mọi task đều phải tuân thủ các điều dưới đây; phần **Yêu c
 - Action: `it("ném FORBIDDEN khi không phải admin")`.
 
 **Bước:**
-- [ ] Hai hàm nghiệp vụ + test.
-- [ ] `QuestionFilters`: form `method="GET"` với select section (từ `TOEIC.sections`), trạng thái, nguồn, ô tìm; giữ giá trị từ `searchParams`.
-- [ ] `QuestionTable`: bảng, checkbox chọn nhiều, hai nút "Đăng" / "Gỡ" gửi `setStatusAction`; mỗi dòng link tới `/admin/questions/[id]`; nhãn trạng thái màu (`text-info` nháp, `text-accent` đã đăng); cảnh báo "thiếu audio" bằng icon `VolumeX`.
-- [ ] Trang server đọc `searchParams`, gọi `listQuestions(prisma, ...)`, phân trang bằng link `?page=`.
-- [ ] Commit: `feat: danh sách câu hỏi có lọc, đăng và gỡ hàng loạt`.
+- [x] Hai hàm nghiệp vụ + test.
+- [x] `QuestionFilters`: form `method="GET"` với select section (từ `TOEIC.sections`), trạng thái, nguồn, ô tìm; giữ giá trị từ `searchParams`.
+- [x] `QuestionTable`: bảng, checkbox chọn nhiều, hai nút "Đăng" / "Gỡ" gửi `setStatusAction`; mỗi dòng link tới `/admin/questions/[id]`; nhãn trạng thái màu (`text-info` nháp, `text-accent` đã đăng); cảnh báo "thiếu audio" bằng icon `VolumeX`.
+- [x] Trang server đọc `searchParams`, gọi `listQuestions(prisma, ...)`, phân trang bằng link `?page=`.
+- [x] Commit: `feat: danh sách câu hỏi có lọc, đăng và gỡ hàng loạt`.
 
 ---
 
@@ -161,10 +165,10 @@ Mọi task đều phải tuân thủ các điều dưới đây; phần **Yêu c
 **Test cần có:** `it("INVALID_ANSWER khi answer vượt số lựa chọn")`, `it("INVALID_CHOICES khi số lựa chọn khác Part")`, form hiện lỗi từ action, nút "Lưu" bị vô hiệu khi đang gửi.
 
 **Bước:**
-- [ ] Hàm + schema + test.
-- [ ] `QuestionForm` (client, `useActionState`): textarea stem, 3–4 ô lựa chọn theo section (số ô cố định, không cho thêm/bớt), radio đáp án, textarea giải thích, skillTags dạng chuỗi phân cách dấu phẩy, ô audioUrl/imageUrl/transcript. Hiện đoạn văn/transcript của nhóm ở trên (chỉ đọc).
-- [ ] Trang `[id]`: `notFound()` nếu không có.
-- [ ] Commit: `feat: form sửa câu hỏi cho admin`.
+- [x] Hàm + schema + test.
+- [x] `QuestionForm` (client, `useActionState`): textarea stem, 3–4 ô lựa chọn theo section (số ô cố định, không cho thêm/bớt), radio đáp án, textarea giải thích, skillTags dạng chuỗi phân cách dấu phẩy, ô audioUrl/imageUrl/transcript. Hiện đoạn văn/transcript của nhóm ở trên (chỉ đọc).
+- [x] Trang `[id]`: `notFound()` nếu không có.
+- [x] Commit: `feat: form sửa câu hỏi cho admin`.
 
 ---
 
@@ -180,10 +184,10 @@ Mọi task đều phải tuân thủ các điều dưới đây; phần **Yêu c
 - Action `importAction(_prev, formData)` trả `{ ok: true; questions; groups; examId } | { ok: false; issues: string[] }`. `issues` là mảng chuỗi `"questions.3.answer: answer phải nhỏ hơn số lựa chọn"` lấy từ `zod.issues`, và mã lỗi nghiệp vụ (`INVALID_SECTION:toeic.p9`) dịch sang tiếng Việt.
 
 **Bước:**
-- [ ] Sửa `importQuestions` + test `it("ghi source AI khi được truyền")`.
-- [ ] `ImportForm`: textarea dán JSON, `<input type="file" accept=".json">` đọc bằng `FileReader` rồi đổ vào textarea, checkbox "Đăng ngay" (mặc định **tắt** — vào nháp), ô "Tạo đề tên..." tuỳ chọn. Kết quả hiện danh sách lỗi theo dòng hoặc thông báo thành công kèm link tới danh sách.
-- [ ] Trang import: mô tả ngắn schema và nhắc file mẫu `prisma/seed/fixtures/questions-sample.json`.
-- [ ] Commit: `feat: nhập câu hỏi từ JSON ngay trên trang quản trị`.
+- [x] Sửa `importQuestions` + test `it("ghi source AI khi được truyền")`.
+- [x] `ImportForm`: textarea dán JSON, `<input type="file" accept=".json">` đọc bằng `FileReader` rồi đổ vào textarea, checkbox "Đăng ngay" (mặc định **tắt** — vào nháp), ô "Tạo đề tên..." tuỳ chọn. Kết quả hiện danh sách lỗi theo dòng hoặc thông báo thành công kèm link tới danh sách.
+- [x] Trang import: mô tả ngắn schema và nhắc file mẫu `prisma/seed/fixtures/questions-sample.json`.
+- [x] Commit: `feat: nhập câu hỏi từ JSON ngay trên trang quản trị`.
 
 ---
 
@@ -206,9 +210,9 @@ Mọi task đều phải tuân thủ các điều dưới đây; phần **Yêu c
 - `it("lấy nguyên nhóm Part 3, không cắt nhóm")`, `it("báo thiếu đúng Part và số lượng khi không đủ")`, `it("không tạo đề khi chỉ một Part thiếu")`, `it("khoá được kết quả bằng rand")`, `it("thứ tự câu đi từ Part 1 đến Part 7")`.
 
 **Bước:**
-- [ ] `build-exam.ts` + test kỹ vì đây là logic khó nhất kế hoạch.
-- [ ] Trang `/admin/exams`: form một ô tên đề + nút "Ghép tự động"; kết quả lỗi thiếu hiện bảng Part/cần/có. Bảng đề: tên, số câu, trạng thái, nút đăng/gỡ, link mở `/exam/[id]`.
-- [ ] Commit: `feat: ghép đề thi tự động từ câu đã đăng`.
+- [x] `build-exam.ts` + test kỹ vì đây là logic khó nhất kế hoạch.
+- [x] Trang `/admin/exams`: form một ô tên đề + nút "Ghép tự động"; kết quả lỗi thiếu hiện bảng Part/cần/có. Bảng đề: tên, số câu, trạng thái, nút đăng/gỡ, link mở `/exam/[id]`.
+- [x] Commit: `feat: ghép đề thi tự động từ câu đã đăng`.
 
 ---
 
@@ -246,10 +250,10 @@ model GenerationJob {
 **Test cần có:** map 429 → `LLM_RATE_LIMITED`; 500 → `LLM_UNAVAILABLE`; nội dung không phải JSON → `LLM_BAD_JSON`; bóc được JSON trong rào markdown; gửi đúng `Authorization: Bearer`; timeout huỷ request.
 
 **Bước:**
-- [ ] Provider + test với `fetchFn` giả (khuôn `libretranslate.test.ts`).
-- [ ] Schema + `npm run db:migrate` (tên `generation_job`).
-- [ ] `.env.example`: `LLM_BASE_URL="https://api.groq.com/openai/v1"`, `LLM_API_KEY=""`, `LLM_MODEL="llama-3.3-70b-versatile"`, kèm comment các endpoint thay thế (OpenRouter `https://openrouter.ai/api/v1`, Gemini `https://generativelanguage.googleapis.com/v1beta/openai`).
-- [ ] Commit: `feat: nhà cung cấp LLM kiểu OpenAI-compatible và bảng GenerationJob`.
+- [x] Provider + test với `fetchFn` giả (khuôn `libretranslate.test.ts`).
+- [x] Schema + `npm run db:migrate` (tên `generation_job`).
+- [x] `.env.example`: `LLM_BASE_URL="https://api.groq.com/openai/v1"`, `LLM_API_KEY=""`, `LLM_MODEL="llama-3.3-70b-versatile"`, kèm comment các endpoint thay thế (OpenRouter `https://openrouter.ai/api/v1`, Gemini `https://generativelanguage.googleapis.com/v1beta/openai`).
+- [x] Commit: `feat: nhà cung cấp LLM kiểu OpenAI-compatible và bảng GenerationJob`.
 
 ---
 
@@ -276,9 +280,9 @@ model GenerationJob {
 - `buildPrompt`: có chứa số câu, skillTag, và ví dụ JSON parse được bằng `questionFileSchema` (test này bảo đảm ví dụ trong prompt không bị lệch schema khi sau này sửa schema).
 
 **Bước:**
-- [ ] Prompt ba Part; test ví dụ đầu ra qua schema.
-- [ ] `generate-questions.ts` + test với fake `llm` (`vi.fn()` trả lần lượt) và fake `db`.
-- [ ] Commit: `feat: sinh câu hỏi Part 5-7 bằng LLM, kết quả vào nháp`.
+- [x] Prompt ba Part; test ví dụ đầu ra qua schema.
+- [x] `generate-questions.ts` + test với fake `llm` (`vi.fn()` trả lần lượt) và fake `db`.
+- [x] Commit: `feat: sinh câu hỏi Part 5-7 bằng LLM, kết quả vào nháp`.
 
 ---
 
@@ -290,11 +294,11 @@ model GenerationJob {
 - Test: `GenerateForm.test.tsx`, cập nhật `actions.test.ts`.
 
 **Bước:**
-- [ ] Action `generateAction(_prev, formData)`: `requireAdmin("action")`, `getLlmProvider()` null ⇒ trả "Chưa cấu hình LLM (LLM_API_KEY)"; gọi `generateQuestions`; trả thông báo "Đã tạo 8 câu nháp" hoặc lỗi dịch sang tiếng Việt (`LLM_RATE_LIMITED` ⇒ "Hết hạn mức, thử lại sau vài phút"). Đặt `export const maxDuration = 60` ở trang.
-- [ ] `retryJobAction(jobId)`: đọc `params` của job cũ, gọi lại `generateQuestions` tạo job mới.
-- [ ] `GenerateForm` (client, `useActionState`): select Part 5/6/7, ô skillTag (datalist gợi ý), số câu 1–10, nút "Sinh" vô hiệu khi đang chạy kèm dòng "Đang gọi LLM, khoảng 20–40 giây…".
-- [ ] Trang: form + bảng lịch sử job (thời gian, Part, số câu, trạng thái, lỗi, nút "Chạy lại" cho `FAILED`), link "Xem nháp" tới `/admin/questions?status=DRAFT&source=AI`.
-- [ ] Commit: `feat: trang sinh câu hỏi bằng AI với lịch sử job`.
+- [x] Action `generateAction(_prev, formData)`: `requireAdmin("action")`, `getLlmProvider()` null ⇒ trả "Chưa cấu hình LLM (LLM_API_KEY)"; gọi `generateQuestions`; trả thông báo "Đã tạo 8 câu nháp" hoặc lỗi dịch sang tiếng Việt (`LLM_RATE_LIMITED` ⇒ "Hết hạn mức, thử lại sau vài phút"). Đặt `export const maxDuration = 60` ở trang.
+- [x] `retryJobAction(jobId)`: đọc `params` của job cũ, gọi lại `generateQuestions` tạo job mới.
+- [x] `GenerateForm` (client, `useActionState`): select Part 5/6/7, ô skillTag (datalist gợi ý), số câu 1–10, nút "Sinh" vô hiệu khi đang chạy kèm dòng "Đang gọi LLM, khoảng 20–40 giây…".
+- [x] Trang: form + bảng lịch sử job (thời gian, Part, số câu, trạng thái, lỗi, nút "Chạy lại" cho `FAILED`), link "Xem nháp" tới `/admin/questions?status=DRAFT&source=AI`.
+- [x] Commit: `feat: trang sinh câu hỏi bằng AI với lịch sử job`.
 
 ---
 
@@ -304,9 +308,9 @@ model GenerationJob {
 - Modify: `README.md`, `CLAUDE.md`, đánh dấu hoàn thành trong file kế hoạch này.
 
 **Bước:**
-- [ ] README: mục "Quản trị" (cấp admin bằng script, các trang, biến môi trường LLM, lô tối đa 10 câu), cập nhật "Việc còn nợ" (TTS cho Part 1–4 chưa có; Part 1–4 chỉ nhập file/thủ công).
-- [ ] CLAUDE.md: thêm đoạn "Quản trị và LLM" — `requireAdmin()` bắt buộc, Server Actions ở `admin/actions.ts`, sinh câu hỏi tái dùng `importQuestions`, provider LLM theo khuôn `translate`, lỗi LLM là mã.
-- [ ] Commit: `docs: hướng dẫn quản trị và sinh câu hỏi bằng AI`.
+- [x] README: mục "Quản trị" (cấp admin bằng script, các trang, biến môi trường LLM, lô tối đa 10 câu), cập nhật "Việc còn nợ" (TTS cho Part 1–4 chưa có; Part 1–4 chỉ nhập file/thủ công).
+- [x] CLAUDE.md: thêm đoạn "Quản trị và LLM" — `requireAdmin()` bắt buộc, Server Actions ở `admin/actions.ts`, sinh câu hỏi tái dùng `importQuestions`, provider LLM theo khuôn `translate`, lỗi LLM là mã.
+- [x] Commit: `docs: hướng dẫn quản trị và sinh câu hỏi bằng AI`.
 
 ---
 

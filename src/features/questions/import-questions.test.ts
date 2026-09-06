@@ -38,6 +38,8 @@ describe("questionFileSchema", () => {
   it("từ chối answer vượt số lựa chọn", () => {
     const r = questionFileSchema.safeParse({ questions: [{ ...base.questions[0], answer: 4 }] });
     expect(r.success).toBe(false);
+    // Lỗi phải trỏ đúng trường answer thì thông báo mới chỉ được chỗ sai cho người nhập file.
+    if (!r.success) expect(r.error.issues[0].path.join(".")).toBe("questions.0.answer");
   });
 });
 
@@ -69,6 +71,12 @@ describe("importQuestions", () => {
     const { db } = fakeDb();
     const bad = questionFileSchema.parse({ questions: [{ ...base.questions[0], section: "toeic.p2" }] });
     await expect(importQuestions(db, bad, { publish: false })).rejects.toThrow("INVALID_CHOICES:0");
+  });
+
+  it("ghi source AI khi được truyền", async () => {
+    const { db, questions } = fakeDb();
+    await importQuestions(db, questionFileSchema.parse(base), { publish: false, source: "AI" });
+    expect(questions.every((q) => q.source === "AI")).toBe(true);
   });
 
   it("groupKey không khai báo → UNKNOWN_GROUP", async () => {
