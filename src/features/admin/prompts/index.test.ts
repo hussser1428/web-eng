@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { questionFileSchema } from "@/features/questions/import-schema";
 import { buildPrompt } from "./index";
+import { MAX_COUNT } from "./limits";
 import { SKILL_TAGS } from "./skill-tags";
 import * as part5 from "./part5";
 import * as part6 from "./part6";
@@ -68,9 +69,17 @@ describe("buildPrompt", () => {
   });
 
   it("Part 6 quy số câu ra số đoạn văn, tối thiểu một đoạn", () => {
-    expect(buildPrompt("toeic.p6", { count: 5 }).user).toContain("2 passages");
-    expect(buildPrompt("toeic.p6", { count: 4 }).user).toContain("1 passage");
-    expect(buildPrompt("toeic.p6", { count: 1 }).user).toContain("1 passage");
+    expect(buildPrompt("toeic.p6", { count: 1 }).user).toContain("Write 1 passage ");
+    expect(buildPrompt("toeic.p6", { count: 5 }).user).toContain("4 questions in total (requested: 5)");
+    expect(buildPrompt("toeic.p6", { count: 6 }).user).toContain("Write 2 passages ");
+    expect(buildPrompt("toeic.p6", { count: 6 }).user).toContain("8 questions in total (requested: 6)");
+  });
+
+  it("Part 6 không xin quá trần một lô dù yêu cầu 10 câu", () => {
+    const { user } = buildPrompt("toeic.p6", { count: MAX_COUNT });
+    expect(user).toContain("Write 2 passages ");
+    expect(user).toContain("8 questions in total (requested: 10)");
+    expect(user).not.toContain("12 questions");
   });
 
   it("ném UNSUPPORTED_SECTION với phần thi không hỗ trợ", () => {

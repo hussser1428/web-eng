@@ -1,3 +1,4 @@
+import { MAX_COUNT } from "./limits";
 import { skillTagLine } from "./skill-tags";
 
 export const system = [
@@ -63,7 +64,8 @@ export const example = {
 };
 
 export function user(count: number, skillTag?: string): string {
-  const passages = Math.max(1, Math.ceil(count / 4));
+  // Mỗi đoạn đúng 4 câu; làm tròn gần nhất rồi chặn trên để tổng không vượt trần một lô.
+  const passages = Math.min(Math.floor(MAX_COUNT / 4), Math.max(1, Math.round(count / 4)));
   return [
     `Write ${passages} ${passages === 1 ? "passage" : "passages"} for section "toeic.p6" (TOEIC Part 6 – text completion) with exactly 4 questions each: ${passages * 4} questions in total (requested: ${count}).`,
     "Each passage is a short business text (memo, email, notice, article) of 80–120 words containing exactly four numbered blanks written as (1), (2), (3), (4).",

@@ -2,6 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 import type { LlmProvider } from "@/lib/providers/llm/types";
 import { importQuestions } from "@/features/questions/import-questions";
 import { questionFileSchema, type QuestionFile } from "@/features/questions/import-schema";
+import { MAX_COUNT } from "./prompts/limits";
 import { buildPrompt, type PromptSection } from "./prompts";
 
 export type GenerateDb = Pick<PrismaClient, "generationJob" | "questionGroup" | "question" | "exam" | "examQuestion">;
@@ -21,8 +22,7 @@ export type GenerateResult = {
   error?: string;
 };
 
-/** Số câu tối đa một lô: sinh đồng bộ trong một request nên phải vừa giới hạn thời gian. */
-export const MAX_COUNT = 10;
+export { MAX_COUNT };
 
 /** Mã lỗi để ghi vào `GenerationJob.error`; lỗi lạ thì gộp thành `LLM_UNAVAILABLE`. */
 function errorCode(e: unknown): string {
