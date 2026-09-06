@@ -23,6 +23,7 @@ npm run db:migrate       # prisma migrate dev
 npm run db:studio
 npm run db:import-dict -- data/star_anhviet   # nhập từ điển StarDict vào bảng Word
 npm run db:import-questions -- <file.json> [--exam "Tên"] [--draft]   # nhập câu hỏi/đề
+npm run db:make-admin -- <email>   # cấp quyền ADMIN cho một tài khoản
 ```
 
 Node 22, npm (không dùng yarn/pnpm). `docker compose up -d` chạy cả Postgres lẫn LibreTranslate; LibreTranslate tải model en/vi lần đầu mất vài phút.
@@ -52,6 +53,8 @@ Next.js 15 App Router + TypeScript + Tailwind 4 + Prisma/PostgreSQL + Auth.js v5
 
 **Chiều dịch:** `direction.ts` chỉ dò ký tự có dấu tiếng Việt — không có dấu thì mặc định en→vi.
 
+**Quản trị và LLM:** mọi trang `/admin/*` và mọi Server Action trong `src/app/admin/actions.ts` phải gọi `requireAdmin()` trước (`"page"` redirect về `/`, `"action"` ném `Error("FORBIDDEN")`) — không kiểm tra `role` lẻ tẻ ở nơi khác. `actions.ts` chỉ parse input rồi gọi hàm trong `src/features/admin/*`, không viết nghiệp vụ ở đó. Sinh câu hỏi bằng AI **không tự ghi database**: prompt (`src/features/admin/prompts/part5|6|7.ts`, số câu tối đa `MAX_COUNT` ở `prompts/limits.ts`, mỗi prompt kèm ví dụ JSON được test khớp `questionFileSchema`) yêu cầu LLM trả đúng định dạng nhập file, qua Zod rồi gọi thẳng `importQuestions()` (`source: "AI"`) — tái dùng toàn bộ đường nhập, không có logic ghi câu hỏi riêng cho AI. Provider LLM (`src/lib/providers/llm/`) theo đúng khuôn `translate`: interface + factory nhận `fetchFn`/`timeoutMs`, `index.ts` đọc biến môi trường và cache instance, thiếu `LLM_API_KEY` thì trả `null` thay vì ném lỗi. Lỗi LLM luôn là mã (`LLM_BAD_JSON`, `LLM_RATE_LIMITED`, `LLM_UNAVAILABLE`) ghi vào `GenerationJob.error`; sai định dạng thử lại đúng một lần, hết hạn mức thì không thử lại.
+
 ## Test
 
 Vitest + jsdom mặc định (`globals: true`, setup `@testing-library/jest-dom`). File test nằm cạnh file nguồn. Test route handler cần môi trường Node: thêm `// @vitest-environment node` ở dòng đầu và `vi.mock` các module `@/lib/*`. Test nghiệp vụ thì truyền fake `db` thay vì mock.
@@ -59,8 +62,8 @@ Vitest + jsdom mặc định (`globals: true`, setup `@testing-library/jest-dom`
 ## Tài liệu & lộ trình
 
 - Spec: `docs/superpowers/specs/2026-09-03-toeic-prep-web-design.md` (mô hình dữ liệu đầy đủ cho đề thi, SM-2, bài đọc song ngữ — phần lớn chưa dựng).
-- Kế hoạch đã xong: `docs/superpowers/plans/2026-09-03-plan-1-foundation-dictionary.md`.
-- README liệt kê việc phải làm trước khi công khai (rate limit `/api/translate`, TTL cho `TranslationCache`, ghim version image LibreTranslate, Google OAuth thật).
+- Kế hoạch đã xong: `docs/superpowers/plans/2026-09-03-plan-1-foundation-dictionary.md` (từ điển), `docs/superpowers/plans/2026-09-06-plan-5-admin-ai-generation.md` (trang quản trị, sinh câu hỏi bằng AI).
+- README liệt kê việc phải làm trước khi công khai (rate limit `/api/translate`, TTL cho `TranslationCache`, ghim version image LibreTranslate, Google OAuth thật) và "Việc còn nợ" (TTS cho Part 1–4, transaction cho nhập/ghép đề, rate limit sinh câu hỏi bằng AI).
 
 Ràng buộc xuyên suốt: vận hành không tốn phí AI (LibreTranslate tự cài, phát âm bằng Web Speech API của trình duyệt). Nội dung sinh bằng AI phải qua admin duyệt.
 
