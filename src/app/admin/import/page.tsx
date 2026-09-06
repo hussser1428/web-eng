@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { Upload } from "lucide-react";
+import { requireAdmin } from "@/lib/require-admin";
 import { ImportForm } from "@/components/admin/ImportForm";
 
 export const metadata: Metadata = { title: "Nhập câu hỏi" };
 
-export default function AdminImportPage() {
+export default async function AdminImportPage() {
+  await requireAdmin();
+
   return (
     <div className="flex flex-col gap-6">
       <header>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { FileQuestion } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/require-admin";
 import { listQuestions } from "@/features/admin/list-questions";
 import { QuestionFilters } from "@/components/admin/QuestionFilters";
 import { QuestionTable } from "@/components/admin/QuestionTable";
@@ -28,6 +29,7 @@ function urlTrang(sp: Search, page: number) {
 }
 
 export default async function AdminQuestionsPage({ searchParams }: { searchParams: Promise<Search> }) {
+  await requireAdmin();
   const sp = await searchParams;
   const trang = await listQuestions(prisma, {
     section: sp.section || undefined,

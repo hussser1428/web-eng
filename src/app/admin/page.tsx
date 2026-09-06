@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LayoutDashboard, FileQuestion, Upload, Sparkles } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/require-admin";
 import { countQuestions } from "@/features/admin/count-questions";
 
 export const metadata: Metadata = { title: "Quản trị" };
 
 export default async function AdminPage() {
+  await requireAdmin();
   const sections = await countQuestions(prisma);
 
   return (

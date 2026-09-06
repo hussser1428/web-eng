@@ -8,7 +8,7 @@ vi.mock("@/app/admin/actions", () => ({ importAction: vi.fn() }));
 describe("ImportForm", () => {
   beforeEach(() => {
     vi.mocked(importAction).mockReset();
-    vi.mocked(importAction).mockResolvedValue({ ok: true, questions: 2, groups: 1, examId: null });
+    vi.mocked(importAction).mockResolvedValue({ ok: true, questions: 2, groups: 1, examId: null, published: false });
   });
 
   it("gửi nội dung JSON, mặc định không tích Đăng ngay", async () => {
@@ -46,13 +46,24 @@ describe("ImportForm", () => {
   });
 
   it("báo thành công kèm link danh sách câu hỏi và đề vừa tạo", async () => {
-    vi.mocked(importAction).mockResolvedValue({ ok: true, questions: 12, groups: 2, examId: "e1" });
+    vi.mocked(importAction).mockResolvedValue({ ok: true, questions: 12, groups: 2, examId: "e1", published: true });
     render(<ImportForm />);
     fireEvent.click(screen.getByRole("button", { name: "Nhập" }));
 
     expect(await screen.findByText("Đã nhập 12 câu và 2 nhóm.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Xem danh sách câu hỏi" })).toHaveAttribute("href", "/admin/questions");
     expect(screen.getByRole("link", { name: "Mở đề vừa tạo" })).toHaveAttribute("href", "/exam/e1");
+  });
+
+  it("đề vừa tạo còn nháp thì báo chữ thay vì link 404", async () => {
+    vi.mocked(importAction).mockResolvedValue({ ok: true, questions: 12, groups: 2, examId: "e1", published: false });
+    render(<ImportForm />);
+    fireEvent.click(screen.getByRole("button", { name: "Nhập" }));
+
+    expect(
+      await screen.findByText("Đề vừa tạo đang là nháp — đăng ở trang Đề thi rồi mới mở được"),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Mở đề vừa tạo" })).not.toBeInTheDocument();
   });
 
   it("không hiện link đề khi không tạo đề", async () => {
@@ -64,14 +75,15 @@ describe("ImportForm", () => {
   });
 
   it("vô hiệu nút Nhập khi đang gửi", async () => {
-    let ketThuc: (v: { ok: true; questions: number; groups: number; examId: string | null }) => void = () => {};
+    let ketThuc: (v: { ok: true; questions: number; groups: number; examId: string | null; published: boolean }) => void =
+      () => {};
     vi.mocked(importAction).mockImplementation(() => new Promise((r) => (ketThuc = r)));
     render(<ImportForm />);
     const nut = screen.getByRole("button", { name: "Nhập" });
     fireEvent.click(nut);
 
     await waitFor(() => expect(nut).toBeDisabled());
-    ketThuc({ ok: true, questions: 1, groups: 0, examId: null });
+    ketThuc({ ok: true, questions: 1, groups: 0, examId: null, published: false });
     await waitFor(() => expect(nut).not.toBeDisabled());
   });
 });

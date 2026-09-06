@@ -21,12 +21,13 @@ describe("BuildExamForm", () => {
     expect(vi.mocked(buildExamAction).mock.calls[0][1].get("title")).toBe("Đề TOEIC số 1");
   });
 
-  it("báo ghép xong kèm link mở đề", async () => {
+  it("báo ghép xong nhưng không mời mở đề nháp", async () => {
     render(<BuildExamForm />);
     fireEvent.click(screen.getByRole("button", { name: "Ghép tự động" }));
 
     expect(await screen.findByText("Đã ghép xong đề mới, đang ở trạng thái nháp.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Mở đề vừa ghép" })).toHaveAttribute("href", "/exam/e1");
+    expect(screen.getByText("Đã tạo đề nháp — đăng ở bảng bên dưới rồi mới mở được.")).toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 
   it("hiện bảng Part còn thiếu bao nhiêu câu", async () => {

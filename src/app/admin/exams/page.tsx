@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ClipboardList } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/require-admin";
 import { listExams } from "@/features/admin/list-exams";
 import { BuildExamForm } from "@/components/admin/BuildExamForm";
 import { setExamStatusAction } from "../actions";
@@ -9,6 +10,7 @@ import { setExamStatusAction } from "../actions";
 export const metadata: Metadata = { title: "Đề thi" };
 
 export default async function AdminExamsPage() {
+  await requireAdmin();
   const de = await listExams(prisma);
 
   return (
@@ -58,9 +60,14 @@ export default async function AdminExamsPage() {
                           {d.status === "PUBLISHED" ? "Gỡ" : "Đăng"}
                         </button>
                       </form>
-                      <Link href={`/exam/${d.id}`} className="text-accent underline">
-                        Mở đề
-                      </Link>
+                      {d.status === "PUBLISHED" ? (
+                        <Link href={`/exam/${d.id}`} className="text-accent underline">
+                          Mở đề
+                        </Link>
+                      ) : (
+                        // Trang /exam/[id] trả 404 với đề nháp, nên đừng mời bấm vào.
+                        <span className="text-muted">Đăng đề rồi mới mở được</span>
+                      )}
                     </div>
                   </td>
                 </tr>

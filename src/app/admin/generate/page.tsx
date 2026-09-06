@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getLlmProvider } from "@/lib/providers/llm";
+import { requireAdmin } from "@/lib/require-admin";
 import { listJobs } from "@/features/admin/list-jobs";
 import { getCertificate, getSection } from "@/features/certificates";
 import { GenerateForm } from "@/components/admin/GenerateForm";
@@ -21,6 +22,7 @@ const TRANG_THAI: Record<string, { nhan: string; mau: string }> = {
 };
 
 export default async function AdminGeneratePage() {
+  await requireAdmin();
   const jobs = await listJobs(prisma);
   const cert = getCertificate("toeic");
   const llmReady = getLlmProvider() !== null;

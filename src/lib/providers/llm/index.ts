@@ -12,6 +12,8 @@ export function getLlmProvider(): LlmProvider | null {
       baseUrl: process.env.LLM_BASE_URL ?? "https://api.groq.com/openai/v1",
       apiKey,
       model: process.env.LLM_MODEL ?? "llama-3.3-70b-versatile",
+      // Phải thấp hơn `maxDuration = 60` của /admin/generate: hết giờ hàm là job kẹt RUNNING mãi.
+      timeoutMs: 45_000,
     });
   }
   return cached;

@@ -1,5 +1,10 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { generateQuestions } from "./generate-questions";
+
+// Nhánh hỏng nào cũng log nguyên lỗi ra server; nuốt đi cho output test sạch.
+beforeEach(() => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
+});
 
 /** Payload hợp lệ theo `questionFileSchema`, `n` câu Part 5. */
 function payload(n: number, section = "toeic.p5") {

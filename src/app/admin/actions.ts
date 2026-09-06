@@ -82,7 +82,8 @@ export async function updateQuestionAction(_prev: string | null, formData: FormD
 }
 
 export type ImportState =
-  | { ok: true; questions: number; groups: number; examId: string | null }
+  // `published` để form biết có link được sang /exam/[id] không: đề nháp thì trang đó trả 404.
+  | { ok: true; questions: number; groups: number; examId: string | null; published: boolean }
   | { ok: false; issues: string[] };
 
 /** Đổi mã lỗi của `importQuestions` sang một dòng tiếng Việt cho người nhập đọc. */
@@ -117,14 +118,15 @@ export async function importAction(_prev: ImportState | null, formData: FormData
   }
 
   try {
+    // Checkbox không tích thì vắng mặt trong FormData; mặc định vào nháp để câu chưa duyệt không lên trang học.
+    const publish = formData.get("publish") !== null;
     const r = await importQuestions(prisma, parsed.data, {
-      // Checkbox không tích thì vắng mặt trong FormData; mặc định vào nháp để câu chưa duyệt không lên trang học.
-      publish: formData.get("publish") !== null,
+      publish,
       examTitle: String(formData.get("examTitle") ?? "").trim() || undefined,
     });
     revalidatePath("/admin");
     revalidatePath("/admin/questions");
-    return { ok: true, ...r };
+    return { ok: true, ...r, published: publish };
   } catch (e) {
     return { ok: false, issues: [dichLoiNhap((e as Error).message)] };
   }

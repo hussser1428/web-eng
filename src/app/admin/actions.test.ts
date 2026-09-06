@@ -285,7 +285,7 @@ describe("importAction", () => {
   it("mặc định vào nháp, trả số câu và làm mới trang", async () => {
     const r = await importAction(null, formNhap());
 
-    expect(r).toEqual({ ok: true, questions: 1, groups: 0, examId: null });
+    expect(r).toEqual({ ok: true, questions: 1, groups: 0, examId: null, published: false });
     expect(create.mock.calls[0][0].data).toMatchObject({ status: "DRAFT", source: "IMPORT" });
     expect(revalidatePath).toHaveBeenCalledWith("/admin");
     expect(revalidatePath).toHaveBeenCalledWith("/admin/questions");
@@ -294,7 +294,7 @@ describe("importAction", () => {
   it("tích Đăng ngay thì lưu PUBLISHED và tạo đề khi có tên đề", async () => {
     const r = await importAction(null, formNhap({ publish: "on", examTitle: "Đề mẫu 1" }));
 
-    expect(r).toEqual({ ok: true, questions: 1, groups: 0, examId: "e1" });
+    expect(r).toEqual({ ok: true, questions: 1, groups: 0, examId: "e1", published: true });
     expect(create.mock.calls[0][0].data).toMatchObject({ status: "PUBLISHED" });
     expect(examCreate).toHaveBeenCalledWith({ data: { certificate: "toeic", title: "Đề mẫu 1", status: "PUBLISHED" } });
   });
@@ -503,6 +503,8 @@ describe("generateAction", () => {
   });
 
   it("đổi mã lỗi của LLM sang thông báo tiếng Việt", async () => {
+    // generateQuestions log nguyên lỗi ra server; nuốt đi cho output test sạch.
+    vi.spyOn(console, "error").mockImplementation(() => {});
     generateJson.mockRejectedValue(new Error("LLM_RATE_LIMITED"));
     await expect(generateAction(null, formSinh())).resolves.toBe("Hết hạn mức, thử lại sau vài phút");
     expect(jobUpdate.mock.calls[0][0].data).toMatchObject({ status: "FAILED", error: "LLM_RATE_LIMITED" });
@@ -517,6 +519,7 @@ describe("generateAction", () => {
   });
 
   it("mã lỗi lạ vẫn hiện ra chứ không nuốt mất", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
     generateJson.mockRejectedValue(new Error("LO_GI_DO"));
 
     await expect(generateAction(null, formSinh())).resolves.toBe("Sinh thất bại: LO_GI_DO");

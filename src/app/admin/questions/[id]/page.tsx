@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/require-admin";
 import { getQuestion } from "@/features/admin/get-question";
 import { getCertificate, getSection } from "@/features/certificates";
 import { QuestionForm } from "@/components/admin/QuestionForm";
@@ -10,6 +11,7 @@ import { QuestionForm } from "@/components/admin/QuestionForm";
 export const metadata: Metadata = { title: "Sửa câu hỏi" };
 
 export default async function AdminQuestionPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireAdmin();
   const { id } = await params;
   const q = await getQuestion(prisma, id);
   if (!q) notFound();

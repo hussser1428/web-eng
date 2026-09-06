@@ -44,7 +44,7 @@ Cấp quyền admin bằng script dòng lệnh (không có giao diện tự phon
 npm run db:make-admin -- email@example.com
 ```
 
-Sau khi có quyền, đăng nhập rồi vào `/admin`:
+Role được sao vào JWT lúc đăng nhập, nên nếu đang có phiên thì phải **đăng xuất rồi đăng nhập lại** mới thấy `/admin`. Sau đó vào `/admin`:
 
 - `/admin` — tổng quan số câu đã đăng/nháp/cần theo từng Part.
 - `/admin/questions` — lọc, sửa, đăng/gỡ hàng loạt (không đăng được câu Listening thiếu audio).
@@ -77,6 +77,7 @@ Sinh câu hỏi bằng AI cần các biến môi trường `LLM_BASE_URL`, `LLM_
 - **Khi có tải thật:** `saveExamAnswers` gọi `updateMany` cho từng câu (200 lượt truy vấn mỗi 30 giây với một đề đầy đủ). Nên chỉ gửi những câu vừa đổi và gộp các lệnh cập nhật khi chấm bài (`src/features/attempts/save-exam-answers.ts`, `submit.ts`).
 - **Chưa có TTS:** Part 1–4 cần audio nên chỉ nhập được qua file JSON/thủ công (đường dẫn `audioUrl` do admin tự lưu sẵn); trang `/admin/generate` mới sinh được Part 5/6/7. Việc thêm TTS (Edge TTS) để kế hoạch sau, đi cùng việc trả nợ audio nhóm Part 3/4 ở trên.
 - `importQuestions()` và `buildExam()` chưa bọc trong transaction — nhập/ghép đề nửa chừng lỗi có thể để lại dữ liệu dở dang.
+- Chưa có cách thu hồi quyền admin; role nằm trong JWT nên mọi thay đổi role chỉ có hiệu lực sau khi người dùng đăng nhập lại.
 - Action sinh câu hỏi (`/admin/generate`) chưa có rate limit — admin bấm liên tục có thể tốn hạn mức LLM miễn phí nhanh hơn cần thiết.
 
 ## Tài liệu

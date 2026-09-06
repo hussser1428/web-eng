@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState } from "react";
-import Link from "next/link";
 import { buildExamAction } from "@/app/admin/actions";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/layout/AuthCard";
 
@@ -44,11 +43,8 @@ export function BuildExamForm() {
       {ketQua?.ok && (
         <div className="rounded-xl border border-line bg-surface-2 p-3 text-sm">
           <p className="font-semibold text-info">Đã ghép xong đề mới, đang ở trạng thái nháp.</p>
-          <p className="mt-1">
-            <Link href={`/exam/${ketQua.examId}`} className="text-accent underline">
-              Mở đề vừa ghép
-            </Link>
-          </p>
+          {/* Đề nháp chưa mở được ở /exam/[id], phải đăng ở bảng bên dưới trước. */}
+          <p className="mt-1">Đã tạo đề nháp — đăng ở bảng bên dưới rồi mới mở được.</p>
         </div>
       )}
 

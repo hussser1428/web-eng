@@ -92,6 +92,8 @@ export async function generateQuestions(
     });
     return { jobId: job.id, status: "DONE", resultCount: imported.questions };
   } catch (e) {
+    // `errorCode` nuốt mất 401/mạng/abort; log nguyên lỗi để còn tra được trên server.
+    console.error("generateQuestions", e);
     const error = errorCode(e);
     await db.generationJob.update({ where: { id: job.id }, data: { status: "FAILED", error, finishedAt: now() } });
     return { jobId: job.id, status: "FAILED", resultCount: 0, error };

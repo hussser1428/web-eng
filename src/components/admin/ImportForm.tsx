@@ -66,11 +66,15 @@ export function ImportForm() {
             <Link href="/admin/questions" className="text-accent underline">
               Xem danh sách câu hỏi
             </Link>
-            {ketQua.examId && (
-              <Link href={`/exam/${ketQua.examId}`} className="text-accent underline">
-                Mở đề vừa tạo
-              </Link>
-            )}
+            {ketQua.examId &&
+              (ketQua.published ? (
+                <Link href={`/exam/${ketQua.examId}`} className="text-accent underline">
+                  Mở đề vừa tạo
+                </Link>
+              ) : (
+                // Không tích "Đăng ngay" thì đề ở trạng thái nháp, /exam/[id] trả 404.
+                <span className="text-muted">Đề vừa tạo đang là nháp — đăng ở trang Đề thi rồi mới mở được</span>
+              ))}
           </p>
         </div>
       )}
