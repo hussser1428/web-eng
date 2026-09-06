@@ -6,6 +6,8 @@ import { requireAdmin } from "@/lib/require-admin";
 import { setQuestionStatus } from "@/features/admin/set-question-status";
 import { updateQuestion } from "@/features/admin/update-question";
 import { updateQuestionSchema } from "@/features/admin/update-question-schema";
+import { importQuestions } from "@/features/questions/import-questions";
+import { questionFileSchema } from "@/features/questions/import-schema";
 
 /** Đăng hoặc gỡ hàng loạt câu hỏi đã tích chọn. Trả chuỗi thông báo cho `useActionState`. */
 export async function setStatusAction(_prev: string | null, formData: FormData): Promise<string | null> {
@@ -71,4 +73,53 @@ export async function updateQuestionAction(_prev: string | null, formData: FormD
   revalidatePath("/admin/questions");
   revalidatePath(`/admin/questions/${id}`);
   return null;
+}
+
+export type ImportState =
+  | { ok: true; questions: number; groups: number; examId: string | null }
+  | { ok: false; issues: string[] };
+
+/** Đổi mã lỗi của `importQuestions` sang một dòng tiếng Việt cho người nhập đọc. */
+function dichLoiNhap(message: string): string {
+  const ngan = message.indexOf(":");
+  const ma = ngan < 0 ? message : message.slice(0, ngan);
+  const chiTiet = ngan < 0 ? "" : message.slice(ngan + 1);
+  if (ma === "UNKNOWN_CERTIFICATE") return "Chứng chỉ không hỗ trợ.";
+  if (ma === "INVALID_SECTION") return `Phần thi không có trong chứng chỉ: ${chiTiet}.`;
+  if (ma === "INVALID_CHOICES") return `Câu thứ ${Number(chiTiet) + 1} có số lựa chọn không khớp phần thi.`;
+  if (ma === "UNKNOWN_GROUP") return `Câu hỏi trỏ tới nhóm chưa khai báo: ${chiTiet}.`;
+  return `Không nhập được: ${message}`;
+}
+
+/** Nhập câu hỏi từ nội dung JSON dán hoặc tải lên. Mọi lỗi trả về thành danh sách dòng, không ném ra ngoài. */
+export async function importAction(_prev: ImportState | null, formData: FormData): Promise<ImportState> {
+  await requireAdmin("action");
+
+  const text = String(formData.get("json") ?? "").trim();
+  if (!text) return { ok: false, issues: ["Chưa có nội dung JSON."] };
+
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch (e) {
+    return { ok: false, issues: [`JSON không hợp lệ: ${(e as Error).message}`] };
+  }
+
+  const parsed = questionFileSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, issues: parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`) };
+  }
+
+  try {
+    const r = await importQuestions(prisma, parsed.data, {
+      // Checkbox không tích thì vắng mặt trong FormData; mặc định vào nháp để câu chưa duyệt không lên trang học.
+      publish: formData.get("publish") !== null,
+      examTitle: String(formData.get("examTitle") ?? "").trim() || undefined,
+    });
+    revalidatePath("/admin");
+    revalidatePath("/admin/questions");
+    return { ok: true, ...r };
+  } catch (e) {
+    return { ok: false, issues: [dichLoiNhap((e as Error).message)] };
+  }
 }

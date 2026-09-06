@@ -8,12 +8,29 @@ const findMany = vi.fn();
 const updateMany = vi.fn();
 const findUnique = vi.fn();
 const update = vi.fn();
-vi.mock("@/lib/prisma", () => ({ prisma: { question: { findMany: () => findMany(), updateMany: (a: unknown) => updateMany(a), findUnique: (a: unknown) => findUnique(a), update: (a: unknown) => update(a) } } }));
+const create = vi.fn();
+const groupCreate = vi.fn();
+const examCreate = vi.fn();
+const examQuestionCreateMany = vi.fn();
+vi.mock("@/lib/prisma", () => ({
+  prisma: {
+    question: {
+      findMany: () => findMany(),
+      updateMany: (a: unknown) => updateMany(a),
+      findUnique: (a: unknown) => findUnique(a),
+      update: (a: unknown) => update(a),
+      create: (a: unknown) => create(a),
+    },
+    questionGroup: { create: (a: unknown) => groupCreate(a) },
+    exam: { create: (a: unknown) => examCreate(a) },
+    examQuestion: { createMany: (a: unknown) => examQuestionCreateMany(a) },
+  },
+}));
 
 const revalidatePath = vi.fn();
 vi.mock("next/cache", () => ({ revalidatePath: (p: string) => revalidatePath(p) }));
 
-import { setStatusAction, updateQuestionAction } from "./actions";
+import { setStatusAction, updateQuestionAction, importAction } from "./actions";
 
 function form(ids: string[], status: string) {
   const fd = new FormData();
@@ -177,6 +194,103 @@ describe("updateQuestionAction", () => {
     await expect(updateQuestionAction(null, formSua({ answer: "4" }))).resolves.toBe(
       "Đáp án nằm ngoài danh sách lựa chọn.",
     );
+
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+const cauMau = {
+  section: "toeic.p5",
+  stem: "The report ___ by Friday.",
+  choices: ["submit", "submitted", "will be submitted", "submitting"],
+  answer: 2,
+  explanation: "Bị động.",
+};
+
+function formNhap(p: Record<string, string> = {}) {
+  const fd = new FormData();
+  fd.set("json", JSON.stringify({ questions: [cauMau] }));
+  for (const [k, v] of Object.entries(p)) fd.set(k, v);
+  return fd;
+}
+
+describe("importAction", () => {
+  beforeEach(() => {
+    authMock.mockReset();
+    create.mockReset();
+    groupCreate.mockReset();
+    examCreate.mockReset();
+    examQuestionCreateMany.mockReset();
+    revalidatePath.mockReset();
+    authMock.mockResolvedValue({ user: { id: "1", role: "ADMIN" } });
+    create.mockResolvedValue({ id: "q1" });
+    groupCreate.mockResolvedValue({ id: "g1" });
+    examCreate.mockResolvedValue({ id: "e1" });
+    examQuestionCreateMany.mockResolvedValue({ count: 1 });
+  });
+
+  it("ném FORBIDDEN khi không phải admin", async () => {
+    authMock.mockResolvedValue({ user: { id: "1", role: "USER" } });
+
+    await expect(importAction(null, formNhap())).rejects.toThrow("FORBIDDEN");
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("báo lỗi khi chưa dán nội dung", async () => {
+    const fd = new FormData();
+    fd.set("json", "   ");
+
+    await expect(importAction(null, fd)).resolves.toEqual({ ok: false, issues: ["Chưa có nội dung JSON."] });
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("báo lỗi khi JSON hỏng", async () => {
+    const r = await importAction(null, formNhap({ json: "{ khong-phai-json" }));
+
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.issues).toHaveLength(1);
+      expect(r.issues[0]).toMatch(/^JSON không hợp lệ: /);
+    }
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("liệt kê lỗi zod kèm đường dẫn trường", async () => {
+    const r = await importAction(null, formNhap({ json: JSON.stringify({ questions: [{ ...cauMau, answer: 9 }] }) }));
+
+    expect(r).toEqual({ ok: false, issues: ["questions.0: answer phải nhỏ hơn số lựa chọn"] });
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("mặc định vào nháp, trả số câu và làm mới trang", async () => {
+    const r = await importAction(null, formNhap());
+
+    expect(r).toEqual({ ok: true, questions: 1, groups: 0, examId: null });
+    expect(create.mock.calls[0][0].data).toMatchObject({ status: "DRAFT", source: "IMPORT" });
+    expect(revalidatePath).toHaveBeenCalledWith("/admin");
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/questions");
+  });
+
+  it("tích Đăng ngay thì lưu PUBLISHED và tạo đề khi có tên đề", async () => {
+    const r = await importAction(null, formNhap({ publish: "on", examTitle: "Đề mẫu 1" }));
+
+    expect(r).toEqual({ ok: true, questions: 1, groups: 0, examId: "e1" });
+    expect(create.mock.calls[0][0].data).toMatchObject({ status: "PUBLISHED" });
+    expect(examCreate).toHaveBeenCalledWith({ data: { certificate: "toeic", title: "Đề mẫu 1", status: "PUBLISHED" } });
+  });
+
+  it("đổi mã lỗi nghiệp vụ thành tiếng Việt", async () => {
+    const section = await importAction(null, formNhap({ json: JSON.stringify({ questions: [{ ...cauMau, section: "toeic.p9" }] }) }));
+    expect(section).toEqual({ ok: false, issues: ["Phần thi không có trong chứng chỉ: toeic.p9."] });
+
+    const choices = await importAction(null, formNhap({ json: JSON.stringify({ questions: [{ ...cauMau, section: "toeic.p2" }] }) }));
+    expect(choices).toEqual({ ok: false, issues: ["Câu thứ 1 có số lựa chọn không khớp phần thi."] });
+
+    const cert = await importAction(null, formNhap({ json: JSON.stringify({ certificate: "ielts", questions: [cauMau] }) }));
+    expect(cert).toEqual({ ok: false, issues: ["Chứng chỉ không hỗ trợ."] });
+
+    const group = await importAction(null, formNhap({ json: JSON.stringify({ questions: [{ ...cauMau, groupKey: "nope" }] }) }));
+    expect(group).toEqual({ ok: false, issues: ["Câu hỏi trỏ tới nhóm chưa khai báo: nope."] });
 
     expect(revalidatePath).not.toHaveBeenCalled();
   });

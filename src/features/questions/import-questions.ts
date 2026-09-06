@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient, QuestionSource } from "@prisma/client";
 import { getCertificate, getSection } from "@/features/certificates";
 import type { QuestionFile } from "./import-schema";
 
@@ -9,7 +9,7 @@ export type ImportResult = { groups: number; questions: number; examId: string |
 export async function importQuestions(
   db: ImportDb,
   data: QuestionFile,
-  opts: { publish: boolean; examTitle?: string },
+  opts: { publish: boolean; examTitle?: string; source?: QuestionSource },
 ): Promise<ImportResult> {
   const cert = getCertificate(data.certificate);
   const status = opts.publish ? "PUBLISHED" : "DRAFT";
@@ -50,7 +50,7 @@ export async function importQuestions(
         audioUrl: q.audioUrl,
         imageUrl: q.imageUrl,
         transcript: q.transcript,
-        source: "IMPORT",
+        source: opts.source ?? "IMPORT",
       },
     });
     questionIds.push(created.id);

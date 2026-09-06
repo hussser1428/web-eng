@@ -71,6 +71,12 @@ describe("importQuestions", () => {
     await expect(importQuestions(db, bad, { publish: false })).rejects.toThrow("INVALID_CHOICES:0");
   });
 
+  it("ghi source AI khi được truyền", async () => {
+    const { db, questions } = fakeDb();
+    await importQuestions(db, questionFileSchema.parse(base), { publish: false, source: "AI" });
+    expect(questions.every((q) => q.source === "AI")).toBe(true);
+  });
+
   it("groupKey không khai báo → UNKNOWN_GROUP", async () => {
     const { db } = fakeDb();
     const bad = questionFileSchema.parse({ questions: [{ ...base.questions[1], groupKey: "nope" }] });
