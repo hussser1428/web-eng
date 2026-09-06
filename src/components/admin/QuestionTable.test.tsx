@@ -1,8 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, within, fireEvent, waitFor } from "@testing-library/react";
 import { QuestionTable } from "./QuestionTable";
+import { setStatusAction } from "@/app/admin/actions";
 
-vi.mock("@/app/admin/actions", () => ({ setStatusAction: vi.fn() }));
+vi.mock("@/app/admin/actions", () => ({ setStatusAction: vi.fn(async () => null) }));
 
 const base = {
   id: "q1",
@@ -32,6 +33,17 @@ describe("QuestionTable", () => {
     expect(screen.getByRole("button", { name: "Đăng" })).toHaveAttribute("value", "PUBLISHED");
     expect(screen.getByRole("button", { name: "Gỡ" })).toHaveAttribute("value", "DRAFT");
     expect(screen.getByRole("button", { name: "Đăng" })).toHaveAttribute("name", "status");
+  });
+
+  it("bấm Đăng thì gửi status PUBLISHED kèm câu đã tích", async () => {
+    render(<QuestionTable items={[base]} />);
+    fireEvent.click(screen.getByRole("checkbox", { name: /The report/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Đăng" }));
+
+    await waitFor(() => expect(setStatusAction).toHaveBeenCalled());
+    const fd = vi.mocked(setStatusAction).mock.calls[0][1];
+    expect(fd.get("status")).toBe("PUBLISHED");
+    expect(fd.getAll("ids")).toEqual(["q1"]);
   });
 
   it("nhãn trạng thái đổi màu theo nháp và đã đăng", () => {

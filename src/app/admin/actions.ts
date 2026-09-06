@@ -9,9 +9,12 @@ import { setQuestionStatus } from "@/features/admin/set-question-status";
 export async function setStatusAction(_prev: string | null, formData: FormData): Promise<string | null> {
   await requireAdmin("action");
 
+  const status = formData.get("status");
+  // Không đoán ý: giá trị lạ mà mặc định thành DRAFT thì sẽ gỡ nhầm cả loạt câu đang đăng.
+  if (status !== "PUBLISHED" && status !== "DRAFT") return "Thao tác không hợp lệ.";
+
   const ids = formData.getAll("ids").map(String);
   if (ids.length === 0) return "Chưa chọn câu nào.";
-  const status = formData.get("status") === "PUBLISHED" ? "PUBLISHED" : "DRAFT";
 
   const r = await setQuestionStatus(prisma, { ids, status });
   revalidatePath("/admin/questions");

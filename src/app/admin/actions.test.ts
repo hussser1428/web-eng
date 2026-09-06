@@ -44,6 +44,18 @@ describe("setStatusAction", () => {
     expect(updateMany).not.toHaveBeenCalled();
   });
 
+  it("từ chối status lạ thay vì mặc định gỡ", async () => {
+    await expect(setStatusAction(null, form(["a", "b"], "ARCHIVED"))).resolves.toBe("Thao tác không hợp lệ.");
+
+    const thieuStatus = new FormData();
+    thieuStatus.append("ids", "a");
+    await expect(setStatusAction(null, thieuStatus)).resolves.toBe("Thao tác không hợp lệ.");
+
+    expect(findMany).not.toHaveBeenCalled();
+    expect(updateMany).not.toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
   it("đăng xong thì báo số câu và làm mới trang", async () => {
     findMany.mockResolvedValue([
       { id: "a", section: "toeic.p5", audioUrl: null, group: null },
