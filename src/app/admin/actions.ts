@@ -43,10 +43,14 @@ export async function updateQuestionAction(_prev: string | null, formData: FormD
   const id = String(formData.get("id") ?? "");
   if (!id) return "Thiếu mã câu hỏi.";
 
+  // Radio không tích thì trường vắng mặt; Number(null) là 0 nên Zod vẫn nhận và sẽ đổi đáp án thành A.
+  const answer = formData.get("answer");
+  if (answer === null) return "Chưa chọn đáp án.";
+
   const parsed = updateQuestionSchema.safeParse({
     stem: chuoi(formData, "stem"),
     choices: formData.getAll("choices").map((c) => String(c).trim()),
-    answer: Number(formData.get("answer")),
+    answer: Number(answer),
     explanation: String(formData.get("explanation") ?? "").trim(),
     skillTags: String(formData.get("skillTags") ?? "")
       .split(",")

@@ -156,6 +156,16 @@ describe("updateQuestionAction", () => {
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 
+  it("từ chối khi chưa tích radio đáp án thay vì lặng lẽ đổi thành A", async () => {
+    const fd = formSua();
+    fd.delete("answer");
+
+    await expect(updateQuestionAction(null, fd)).resolves.toBe("Chưa chọn đáp án.");
+
+    expect(update).not.toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
   it("đổi mã lỗi nghiệp vụ thành thông báo tiếng Việt", async () => {
     findUnique.mockResolvedValue(null);
     await expect(updateQuestionAction(null, formSua())).resolves.toBe("Không tìm thấy câu hỏi.");
