@@ -4,6 +4,7 @@ import { ScoreCard } from "./ScoreCard";
 import { ProgressSparkline } from "./ProgressSparkline";
 import { WeaknessBars } from "./WeaknessBars";
 import { SuggestionList } from "./SuggestionList";
+import { DueWordsCard } from "./DueWordsCard";
 
 type Props = { name: string; data: Dashboard };
 
@@ -43,7 +44,12 @@ export function DashboardView({ name, data }: Props) {
         {data.history.length >= 2 ? <ProgressSparkline points={data.history} /> : <QuickActions />}
       </div>
 
-      <SuggestionList suggestions={data.suggestions} />
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="md:col-span-2">
+          <SuggestionList suggestions={data.suggestions} />
+        </div>
+        <DueWordsCard due={data.vocab.due} saved={data.vocab.saved} />
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <WeaknessBars title="Theo phần thi" items={sectionItems} emptyText="Chưa có câu nào trong 30 ngày qua." />

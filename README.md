@@ -12,6 +12,8 @@ Web luyện thi TOEIC Listening & Reading, kèm từ điển bôi đen dịch, t
 6. `npm run dev` và mở http://localhost:3000
 7. Luyện tập: `/drill` → Part 5 → 10 câu
 8. Thi thử: `/exam` → Đề rút gọn 1 → làm → Nộp bài → xem điểm
+9. Từ vựng: bôi đen một từ tiếng Anh bất kỳ → **Lưu từ** trong popup → `/vocab`
+10. Ôn từ: `/vocab` → **Ôn thẻ** (lật thẻ, tự đánh giá) hoặc **Trắc nghiệm** (4 lựa chọn, hai chiều)
 
 ## Nhập câu hỏi và đề thi
 
@@ -24,6 +26,14 @@ npm run db:import-questions -- prisma/seed/fixtures/questions-sample.json --exam
 ```
 
 Đề đầy đủ TOEIC cần 200 câu theo cấu trúc trong `src/features/certificates/toeic.ts`; đề ít câu hơn vẫn chạy được và được ghi "đề rút gọn".
+
+## Ôn từ ngắt quãng
+
+Mỗi từ lưu trong sổ tay có lịch ôn riêng theo thuật toán SM-2: trả lời đúng thì khoảng cách giữa hai lần ôn giãn dần (1 ngày → 6 ngày → nhân theo `easeFactor`), trả lời sai thì quay về 1 ngày. Mỗi phiên tối đa 20 thẻ, ưu tiên từ quá hạn lâu nhất.
+
+Hết từ đến hạn vẫn ôn được — gọi là **ôn sớm**. Ôn sớm không đẩy lịch ra xa thêm: trả lời đúng thì giữ nguyên hạn cũ, trả lời sai vẫn kéo từ về ôn lại ngày mai.
+
+Trắc nghiệm cần từ điển đủ dày: mỗi câu phải tìm được ba từ khác cùng loại từ và khác nghĩa. Sổ tay quá ít từ hoặc chưa nhập từ điển StarDict thì trang trắc nghiệm sẽ mời chuyển sang ôn thẻ.
 
 ## Docker
 
