@@ -14,6 +14,10 @@ import { generateAudio, MAX_TTS_ITEMS } from "@/features/admin/tts/generate-audi
 import { setQuestionStatus } from "@/features/admin/set-question-status";
 import { updateQuestion } from "@/features/admin/update-question";
 import { updateQuestionSchema } from "@/features/admin/update-question-schema";
+import { deleteReading } from "@/features/reading/admin/delete-reading";
+import { setReadingStatus } from "@/features/reading/admin/set-reading-status";
+import { updateReading } from "@/features/reading/admin/update-reading";
+import { updateReadingSchema } from "@/features/reading/admin/update-reading-schema";
 import { importQuestions } from "@/features/questions/import-questions";
 import { questionFileSchema } from "@/features/questions/import-schema";
 
@@ -245,4 +249,78 @@ export async function generateAudioAction(_prev: string | null, formData: FormDa
   const loi = r.failed > 0 ? ` (${r.errors[0]?.split(": ").at(-1) ?? "TTS_UNAVAILABLE"})` : "";
   const thua = r.overflow > 0 ? ` Chỉ xử lý ${MAX_TTS_ITEMS} mục đầu.` : "";
   return `Đã tạo audio cho ${r.done} mục, bỏ qua ${r.skipped} (đã có audio hoặc không có transcript), lỗi ${r.failed}${loi}.${thua}`;
+}
+
+/** Làm mới cả trang quản trị lẫn trang học của một bài đọc sau khi đổi nội dung hoặc trạng thái. */
+function lamMoiBaiDoc(id?: string) {
+  revalidatePath("/admin/readings");
+  revalidatePath("/reading");
+  if (id) {
+    revalidatePath(`/admin/readings/${id}`);
+    revalidatePath(`/reading/${id}`);
+  }
+}
+
+/** Đăng hoặc gỡ một bài đọc. Giá trị lạ thì bỏ qua, không đoán ý. */
+export async function setReadingStatusAction(formData: FormData): Promise<void> {
+  await requireAdmin("action");
+
+  const id = String(formData.get("id") ?? "");
+  const status = formData.get("status");
+  if (!id || (status !== "PUBLISHED" && status !== "DRAFT")) return;
+
+  await setReadingStatus(prisma, { id, status });
+  lamMoiBaiDoc(id);
+}
+
+/** Xoá hẳn một bài đọc cùng các câu của nó. Bài đã biến mất thì im lặng, không bắt người dùng xử lý. */
+export async function deleteReadingAction(formData: FormData): Promise<void> {
+  await requireAdmin("action");
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  try {
+    await deleteReading(prisma, id);
+  } catch (e) {
+    if ((e as Error).message !== "NOT_FOUND") throw e;
+  }
+  lamMoiBaiDoc(id);
+}
+
+/** Lưu một bài đọc từ form sửa. Trả `null` khi xong, hoặc thông báo lỗi tiếng Việt. */
+export async function updateReadingAction(_prev: string | null, formData: FormData): Promise<string | null> {
+  await requireAdmin("action");
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return "Thiếu mã bài đọc.";
+
+  // `paragraphs` do ReadingEditForm đóng gói thành JSON; JSON hỏng cũng là dữ liệu không hợp lệ.
+  let paragraphs: unknown;
+  try {
+    paragraphs = JSON.parse(String(formData.get("paragraphs") ?? ""));
+  } catch {
+    return "Dữ liệu không hợp lệ. Kiểm tra tiêu đề, nguồn, giấy phép và các câu.";
+  }
+
+  const parsed = updateReadingSchema.safeParse({
+    title: String(formData.get("title") ?? "").trim(),
+    genre: formData.get("genre"),
+    level: formData.get("level"),
+    sourceName: String(formData.get("sourceName") ?? "").trim(),
+    sourceUrl: chuoi(formData, "sourceUrl"),
+    license: String(formData.get("license") ?? "").trim(),
+    paragraphs,
+  });
+  if (!parsed.success) return "Dữ liệu không hợp lệ. Kiểm tra tiêu đề, nguồn, giấy phép và các câu.";
+
+  try {
+    await updateReading(prisma, id, parsed.data);
+  } catch (e) {
+    if ((e as Error).message === "NOT_FOUND") return "Không tìm thấy bài đọc.";
+    return "Không lưu được bài đọc.";
+  }
+
+  lamMoiBaiDoc(id);
+  return null;
 }

@@ -30,22 +30,37 @@ export function groupParagraphs(
   return [...byParagraph.entries()].sort((a, b) => a[0] - b[0]).map(([, sentences]) => sentences);
 }
 
+type ReadingRow = {
+  id: string;
+  title: string;
+  genre: ReadingGenre;
+  level: ReadingLevel;
+  sourceName: string;
+  sourceUrl: string | null;
+  license: string;
+  wordCount: number;
+  sentences: Array<{ order: number; paragraphIndex: number; en: string; vi: string }>;
+};
+
+/** Thuần: đổi một dòng Reading (kèm `sentences`) thành DTO cho client. */
+export function toReadingForClient(row: ReadingRow): ReadingForClient {
+  return {
+    id: row.id,
+    title: row.title,
+    genre: row.genre,
+    level: row.level,
+    sourceName: row.sourceName,
+    sourceUrl: row.sourceUrl,
+    license: row.license,
+    wordCount: row.wordCount,
+    paragraphs: groupParagraphs(row.sentences),
+  };
+}
+
 export async function getReading(db: GetReadingDb, id: string): Promise<ReadingForClient | null> {
   const reading = await db.reading.findFirst({
     where: { id, status: "PUBLISHED" },
     include: { sentences: { orderBy: { order: "asc" } } },
   });
-  if (!reading) return null;
-
-  return {
-    id: reading.id,
-    title: reading.title,
-    genre: reading.genre,
-    level: reading.level,
-    sourceName: reading.sourceName,
-    sourceUrl: reading.sourceUrl,
-    license: reading.license,
-    wordCount: reading.wordCount,
-    paragraphs: groupParagraphs(reading.sentences),
-  };
+  return reading ? toReadingForClient(reading) : null;
 }

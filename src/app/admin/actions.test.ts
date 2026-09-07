@@ -17,6 +17,11 @@ const examQuestionCreateMany = vi.fn();
 const jobCreate = vi.fn();
 const jobUpdate = vi.fn();
 const jobFindUnique = vi.fn();
+const readingFindUnique = vi.fn();
+const readingUpdate = vi.fn();
+const readingDelete = vi.fn();
+const sentenceDeleteMany = vi.fn();
+const sentenceCreateMany = vi.fn();
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     question: {
@@ -35,6 +40,16 @@ vi.mock("@/lib/prisma", () => ({
       update: (a: unknown) => jobUpdate(a),
       findUnique: (a: unknown) => jobFindUnique(a),
     },
+    reading: {
+      findUnique: (a: unknown) => readingFindUnique(a),
+      update: (a: unknown) => readingUpdate(a),
+      delete: (a: unknown) => readingDelete(a),
+    },
+    readingSentence: {
+      deleteMany: (a: unknown) => sentenceDeleteMany(a),
+      createMany: (a: unknown) => sentenceCreateMany(a),
+    },
+    $transaction: (ops: unknown[]) => Promise.all(ops as Promise<unknown>[]),
   },
 }));
 
@@ -56,6 +71,9 @@ import {
   generateAction,
   retryJobAction,
   generateAudioAction,
+  setReadingStatusAction,
+  deleteReadingAction,
+  updateReadingAction,
 } from "./actions";
 
 function form(ids: string[], status: string) {
@@ -637,5 +655,122 @@ describe("generateAudioAction", () => {
 
     expect(r).toContain("Chỉ xử lý 10 mục đầu.");
     expect(findMany.mock.calls[0][0].where.id.in).toHaveLength(10);
+  });
+});
+
+const baiDoc = {
+  title: "Con cáo và chùm nho",
+  genre: "FAIRY_TALE",
+  level: "A2",
+  sourceName: "Aesop",
+  sourceUrl: "",
+  license: "Public domain",
+  paragraphs: [[{ en: "A fox saw grapes.", vi: "Cáo thấy nho." }]],
+};
+
+function formBaiDoc(p: Partial<Record<string, string>> = {}) {
+  const fd = new FormData();
+  fd.set("id", "r1");
+  fd.set("title", baiDoc.title);
+  fd.set("genre", baiDoc.genre);
+  fd.set("level", baiDoc.level);
+  fd.set("sourceName", baiDoc.sourceName);
+  fd.set("sourceUrl", baiDoc.sourceUrl);
+  fd.set("license", baiDoc.license);
+  fd.set("paragraphs", JSON.stringify(baiDoc.paragraphs));
+  for (const [k, v] of Object.entries(p)) fd.set(k, v as string);
+  return fd;
+}
+
+describe("hành động bài đọc", () => {
+  beforeEach(() => {
+    authMock.mockReset();
+    revalidatePath.mockReset();
+    readingFindUnique.mockReset();
+    readingUpdate.mockReset();
+    readingDelete.mockReset();
+    sentenceDeleteMany.mockReset();
+    sentenceCreateMany.mockReset();
+    authMock.mockResolvedValue({ user: { id: "1", role: "ADMIN" } });
+    readingFindUnique.mockResolvedValue({ id: "r1" });
+    readingUpdate.mockResolvedValue({});
+    readingDelete.mockResolvedValue({});
+    sentenceDeleteMany.mockResolvedValue({ count: 1 });
+    sentenceCreateMany.mockResolvedValue({ count: 1 });
+  });
+
+  it("ném FORBIDDEN khi không phải admin", async () => {
+    authMock.mockResolvedValue({ user: { id: "1", role: "USER" } });
+
+    await expect(updateReadingAction(null, formBaiDoc())).rejects.toThrow("FORBIDDEN");
+    const fd = new FormData();
+    fd.set("id", "r1");
+    fd.set("status", "PUBLISHED");
+    await expect(setReadingStatusAction(fd)).rejects.toThrow("FORBIDDEN");
+    await expect(deleteReadingAction(fd)).rejects.toThrow("FORBIDDEN");
+    expect(readingUpdate).not.toHaveBeenCalled();
+    expect(readingDelete).not.toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("lưu xong thì trả null và làm mới cả trang quản trị lẫn trang học", async () => {
+    await expect(updateReadingAction(null, formBaiDoc())).resolves.toBeNull();
+
+    expect(sentenceCreateMany).toHaveBeenCalledWith({
+      data: [{ readingId: "r1", order: 1, paragraphIndex: 0, en: "A fox saw grapes.", vi: "Cáo thấy nho." }],
+    });
+    const duong = revalidatePath.mock.calls.map((c) => c[0]);
+    expect(duong).toEqual(["/admin/readings", "/reading", "/admin/readings/r1", "/reading/r1"]);
+  });
+
+  it("ô URL để trống thì lưu thành null chứ không phải chuỗi rỗng", async () => {
+    await updateReadingAction(null, formBaiDoc());
+    expect(readingUpdate).toHaveBeenCalledWith({
+      where: { id: "r1" },
+      data: expect.objectContaining({ sourceUrl: null }),
+    });
+  });
+
+  it("JSON câu hỏng thì báo dữ liệu không hợp lệ, không đụng database", async () => {
+    const r = await updateReadingAction(null, formBaiDoc({ paragraphs: "{không phải json" }));
+    expect(r).toBe("Dữ liệu không hợp lệ. Kiểm tra tiêu đề, nguồn, giấy phép và các câu.");
+    expect(sentenceCreateMany).not.toHaveBeenCalled();
+  });
+
+  it("thiếu tiêu đề thì báo dữ liệu không hợp lệ", async () => {
+    const r = await updateReadingAction(null, formBaiDoc({ title: "  " }));
+    expect(r).toBe("Dữ liệu không hợp lệ. Kiểm tra tiêu đề, nguồn, giấy phép và các câu.");
+  });
+
+  it("báo không tìm thấy khi bài đã bị xoá", async () => {
+    readingFindUnique.mockResolvedValue(null);
+    await expect(updateReadingAction(null, formBaiDoc())).resolves.toBe("Không tìm thấy bài đọc.");
+  });
+
+  it("đăng bài rồi làm mới trang đọc", async () => {
+    const fd = new FormData();
+    fd.set("id", "r1");
+    fd.set("status", "PUBLISHED");
+    await setReadingStatusAction(fd);
+
+    expect(readingUpdate).toHaveBeenCalledWith({ where: { id: "r1" }, data: { status: "PUBLISHED" } });
+    expect(revalidatePath).toHaveBeenCalledWith("/reading");
+  });
+
+  it("trạng thái lạ thì bỏ qua, không đoán ý", async () => {
+    const fd = new FormData();
+    fd.set("id", "r1");
+    fd.set("status", "XOA_HET");
+    await setReadingStatusAction(fd);
+    expect(readingUpdate).not.toHaveBeenCalled();
+  });
+
+  it("xoá bài rồi làm mới danh sách", async () => {
+    const fd = new FormData();
+    fd.set("id", "r1");
+    await deleteReadingAction(fd);
+
+    expect(readingDelete).toHaveBeenCalledWith({ where: { id: "r1" } });
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/readings");
   });
 });
