@@ -101,6 +101,19 @@ describe("listQuestions", () => {
     ]);
   });
 
+  it("missingAudio chỉ lấy câu Listening chưa có audio câu lẫn nhóm", async () => {
+    const { db, findMany } = fakeDb([]);
+    await listQuestions(db, { missingAudio: true });
+
+    const args = findMany.mock.calls[0][0];
+    expect(args.where).toEqual({
+      certificate: "toeic",
+      section: { in: ["toeic.p1", "toeic.p2", "toeic.p3", "toeic.p4"] },
+      audioUrl: null,
+      OR: [{ groupId: null }, { group: { audioUrl: null } }],
+    });
+  });
+
   it("trả đủ trường của một dòng, choices là mảng chuỗi", async () => {
     const { db } = fakeDb([row({ groupId: "g9", group: { audioUrl: null } })]);
     const r = await listQuestions(db, {});
