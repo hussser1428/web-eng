@@ -66,7 +66,7 @@ npm run db:import-reading -- <file.json> [--draft]
 }
 ```
 
-Trang đọc (`/reading`) là danh sách bài lọc theo thể loại (HUMOR, FAIRY_TALE, ANIME, NEWS) và độ khó (A2, B1, B2, C1), hiển thị bài đã đăng. Mỗi bài là lưới hai cột trên desktop (Anh phải, Việt trái), xếp chồng trên di động (Anh trên, Việt dưới). Nút trên di động ẩn/hiện cột tiếng Việt. Bôi đen từ trong cột tiếng Anh để tra từ — popup dịch lấy câu chứa từ làm ngữ cảnh (lưu vào sổ từ vựng kèm `sourceContext` là câu).
+Trang đọc (`/reading`) là danh sách bài lọc theo thể loại (HUMOR, FAIRY_TALE, ANIME, NEWS) và độ khó (A2, B1, B2, C1), hiển thị bài đã đăng. Mỗi bài là lưới hai cột trên desktop (Anh trái, Việt phải), xếp chồng trên di động (Anh trên, Việt dưới). Nút trên di động ẩn/hiện cột tiếng Việt. Bôi đen từ trong cột tiếng Anh để tra từ — popup dịch lấy câu chứa từ làm ngữ cảnh (lưu vào sổ từ vựng kèm `sourceContext` là câu).
 
 ## Quản trị
 

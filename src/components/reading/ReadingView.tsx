@@ -23,6 +23,7 @@ export function ReadingView({ reading }: Props) {
           className={highlighted ? "bg-accent/20 rounded" : undefined}
           onMouseEnter={() => setHoverOrder(s.order)}
           onMouseLeave={() => setHoverOrder(null)}
+          // Trên màn hình cảm ứng, câu vừa chạm giữ tô sáng cho tới khi chạm câu khác — có chủ ý, làm mốc đọc.
           onTouchStart={() => setHoverOrder(s.order)}
         >
           {s[lang]}

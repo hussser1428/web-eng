@@ -2,7 +2,7 @@
 
 > Trạng thái: ĐÃ HOÀN THÀNH 2026-09-08 trên nhánh plan-6-reading.
 
-> **Dành cho agent thực thi:** BẮT BUỘC dùng sub-skill `superpowers:subagent-driven-development` (khuyến nghị) hoặc `superpowers:executing-plans` để làm theo từng task. Các bước dùng cú pháp checkbox (`- [x]`) để đánh dấu.
+> **Dành cho agent thực thi:** BẮT BUỘC dùng sub-skill `superpowers:subagent-driven-development` (khuyến nghị) hoặc `superpowers:executing-plans` để làm theo từng task. Các bước dùng cú pháp checkbox (`- [ ]`) để đánh dấu.
 
 **Mục tiêu:** Người học đọc được bài song ngữ Anh–Việt: danh sách bài lọc theo thể loại và độ khó, trang đọc hai cột trên desktop và gộp đoạn trên di động, bôi đen từ trong cột tiếng Anh để tra và lưu từ kèm câu chứa từ. Admin nhập bài từ file JSON bằng script dòng lệnh (quản lý bài đọc trên web thuộc kế hoạch 7).
 

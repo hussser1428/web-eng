@@ -45,4 +45,12 @@ describe("readingFileSchema", () => {
 
     expect(result.success).toBe(false);
   });
+
+  it("từ chối sourceUrl không phải http", () => {
+    const result = readingFileSchema.safeParse(
+      baseFile({ sourceUrl: "javascript:alert(1)" }),
+    );
+
+    expect(result.success).toBe(false);
+  });
 });

@@ -38,4 +38,46 @@ describe("getReading", () => {
       expect.objectContaining({ where: { id: "r1", status: "PUBLISHED" } }),
     );
   });
+
+  it("trả bài đã đăng với câu gộp theo đoạn, không lộ id câu", async () => {
+    const createdAt = new Date("2026-01-01");
+    const findFirst = vi.fn(async () => ({
+      id: "r1",
+      title: "Cô bé quàng khăn đỏ",
+      genre: "FAIRY_TALE",
+      level: "A2",
+      sourceName: "Project Gutenberg",
+      sourceUrl: "https://example.com",
+      license: "Public domain",
+      wordCount: 42,
+      status: "PUBLISHED",
+      source: "IMPORT",
+      createdAt,
+      sentences: [
+        { id: "s1", readingId: "r1", order: 1, paragraphIndex: 0, en: "a", vi: "a-vi" },
+        { id: "s2", readingId: "r1", order: 2, paragraphIndex: 0, en: "b", vi: "b-vi" },
+        { id: "s3", readingId: "r1", order: 3, paragraphIndex: 1, en: "c", vi: "c-vi" },
+      ],
+    }));
+    const db = { reading: { findFirst } } as unknown as GetReadingDb;
+    const result = await getReading(db, "r1");
+
+    expect(result).toEqual({
+      id: "r1",
+      title: "Cô bé quàng khăn đỏ",
+      genre: "FAIRY_TALE",
+      level: "A2",
+      sourceName: "Project Gutenberg",
+      sourceUrl: "https://example.com",
+      license: "Public domain",
+      wordCount: 42,
+      paragraphs: [
+        [
+          { order: 1, en: "a", vi: "a-vi" },
+          { order: 2, en: "b", vi: "b-vi" },
+        ],
+        [{ order: 3, en: "c", vi: "c-vi" }],
+      ],
+    });
+  });
 });

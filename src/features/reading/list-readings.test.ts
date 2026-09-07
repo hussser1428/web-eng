@@ -15,7 +15,11 @@ describe("listReadings", () => {
     const { db, findMany } = fakeDb();
     await listReadings(db);
     expect(findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { status: "PUBLISHED" } }),
+      expect.objectContaining({
+        where: { status: "PUBLISHED" },
+        take: 100,
+        orderBy: { createdAt: "desc" },
+      }),
     );
   });
 
