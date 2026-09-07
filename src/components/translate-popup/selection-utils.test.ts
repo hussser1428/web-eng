@@ -34,4 +34,12 @@ describe("blockContext", () => {
     html(`<p id="p">${"a".repeat(400)}</p>`);
     expect(blockContext(document.getElementById("p")!.firstChild)!.length).toBe(300);
   });
+  it("ưu tiên phần tử có data-translate-context thay vì thẻ khối", () => {
+    html(`<p><span data-translate-context id="ctx">Câu một.</span> <span>Câu hai.</span></p>`);
+    expect(blockContext(document.getElementById("ctx")!.firstChild)).toBe("Câu một.");
+  });
+  it("vẫn lấy thẻ khối khi không có thuộc tính", () => {
+    html(`<p id="p">The meeting is <b id="b">postponed</b>.</p>`);
+    expect(blockContext(document.getElementById("b")!.firstChild)).toBe("The meeting is postponed.");
+  });
 });

@@ -1,0 +1,21 @@
+{
+  "title": "Con cáo và chùm nho",
+  "genre": "FAIRY_TALE",
+  "level": "A2",
+  "sourceName": "Aesop's Fables",
+  "sourceUrl": "https://www.gutenberg.org/ebooks/11339",
+  "license": "Public domain",
+  "paragraphs": [
+    [
+      { "en": "One hot summer day a fox was walking through an orchard.", "vi": "Một ngày hè nóng nực, con cáo đi dạo qua vườn cây ăn quả." },
+      { "en": "He saw a bunch of ripe grapes hanging from a high branch.", "vi": "Nó thấy một chùm nho chín treo trên cành cao." },
+      { "en": "\"Just the thing to quench my thirst,\" he said.", "vi": "\"Đúng là thứ để giải khát,\" nó nói." },
+      { "en": "He stepped back, took a run, and jumped as high as he could to reach them.", "vi": "Nó lùi lại vài bước, chạy đà rồi nhảy lên thật cao để với lấy chùm nho." }
+    ],
+    [
+      { "en": "But no matter how hard he tried, he could not reach the grapes.", "vi": "Nhưng dù cố gắng thế nào, nó vẫn không thể chạm tới chùm nho." },
+      { "en": "After trying many times, he finally gave up.", "vi": "Sau nhiều lần thử, cuối cùng nó đành bỏ cuộc." },
+      { "en": "As he walked away, he said, \"Those grapes are probably sour anyway.\"", "vi": "Vừa bỏ đi, nó vừa nói: \"Chắc là chùm nho đó chua lắm.\"" }
+    ]
+  ]
+}

@@ -225,3 +225,46 @@ model GenerationJob {
 
   @@index([createdAt])
 }
+
+enum ReadingGenre {
+  HUMOR
+  FAIRY_TALE
+  ANIME
+  NEWS
+}
+
+enum ReadingLevel {
+  A2
+  B1
+  B2
+  C1
+}
+
+model Reading {
+  id         String            @id @default(cuid())
+  title      String
+  genre      ReadingGenre
+  level      ReadingLevel
+  sourceName String
+  sourceUrl  String?
+  license    String
+  status     ContentStatus     @default(DRAFT)
+  source     QuestionSource    @default(IMPORT)
+  wordCount  Int
+  createdAt  DateTime          @default(now())
+  sentences  ReadingSentence[]
+
+  @@index([status, genre, level])
+}
+
+model ReadingSentence {
+  id             String  @id @default(cuid())
+  readingId      String
+  order          Int
+  paragraphIndex Int
+  en             String
+  vi             String
+  reading        Reading @relation(fields: [readingId], references: [id], onDelete: Cascade)
+
+  @@unique([readingId, order])
+}
