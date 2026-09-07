@@ -257,6 +257,13 @@ model Reading {
   @@index([status, genre, level])
 }
 
+model AudioFile {
+  id        String   @id @default(cuid())
+  mime      String   @default("audio/mpeg")
+  bytes     Bytes
+  createdAt DateTime @default(now())
+}
+
 model ReadingSentence {
   id             String  @id @default(cuid())
   readingId      String

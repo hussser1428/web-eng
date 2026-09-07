@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { audioUrlSchema } from "@/features/audio/audio-url";
+
+const imageUrlSchema = z.url({ protocol: /^https?$/ });
 
 const questionItem = z
   .object({
@@ -9,8 +12,8 @@ const questionItem = z
     answer: z.number().int().min(0),
     explanation: z.string().min(1).max(3000),
     skillTags: z.array(z.string().min(1)).default([]),
-    audioUrl: z.string().url().optional(),
-    imageUrl: z.string().url().optional(),
+    audioUrl: audioUrlSchema.optional(),
+    imageUrl: imageUrlSchema.optional(),
     transcript: z.string().max(5000).optional(),
   })
   .refine((q) => q.answer < q.choices.length, { path: ["answer"], message: "answer phải nhỏ hơn số lựa chọn" });
@@ -24,8 +27,8 @@ export const questionFileSchema = z.object({
         section: z.string().min(1),
         passage: z.string().max(10000).optional(),
         transcript: z.string().max(10000).optional(),
-        audioUrl: z.string().url().optional(),
-        imageUrl: z.string().url().optional(),
+        audioUrl: audioUrlSchema.optional(),
+        imageUrl: imageUrlSchema.optional(),
       }),
     )
     .default([]),
