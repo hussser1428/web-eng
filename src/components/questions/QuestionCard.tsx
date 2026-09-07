@@ -13,12 +13,15 @@ type Props = {
   disabled?: boolean;
   reveal?: { answer: number; explanation: string } | null;
   autoPlayAudio?: boolean;
+  playedAudio?: ReadonlySet<string>;
+  onAudioPlayed?: (src: string) => void;
 };
 
-export function QuestionCard({ q, index, selected, onSelect, disabled, reveal, autoPlayAudio }: Props) {
+export function QuestionCard({ q, index, selected, onSelect, disabled, reveal, autoPlayAudio, playedAudio, onAudioPlayed }: Props) {
   const locked = disabled || !!reveal;
   const audio = q.audioUrl ?? q.group?.audioUrl ?? null;
   const image = q.imageUrl ?? q.group?.imageUrl ?? null;
+  const hideChoiceText = q.section === "toeic.p2" && !reveal;
 
   const stateOf = (i: number): "correct" | "wrong" | "selected" | "idle" => {
     if (reveal) {
@@ -43,7 +46,11 @@ export function QuestionCard({ q, index, selected, onSelect, disabled, reveal, a
         <div className="mt-3 whitespace-pre-wrap rounded-xl border border-line bg-surface-2 p-4 text-sm leading-relaxed">{q.group.passage}</div>
       )}
       {image && <img src={image} alt="Hình của câu hỏi" className="mt-3 max-h-72 rounded-xl" />}
-      {audio && <div className="mt-3"><AudioOnce src={audio} autoPlay={autoPlayAudio} /></div>}
+      {audio && (
+        <div className="mt-3">
+          <AudioOnce key={audio} src={audio} autoPlay={autoPlayAudio} played={playedAudio?.has(audio)} onPlayed={onAudioPlayed} />
+        </div>
+      )}
       {q.stem && <p className="mt-4 text-lg font-semibold leading-relaxed">{q.stem}</p>}
 
       <div role="radiogroup" aria-label="Lựa chọn" className="mt-4 flex flex-col gap-2">
@@ -60,8 +67,14 @@ export function QuestionCard({ q, index, selected, onSelect, disabled, reveal, a
               onClick={() => !locked && onSelect?.(i)}
               className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-left transition disabled:cursor-default ${cls[st]}`}
             >
-              <span className="font-bold text-info">{LABELS[i]}.</span>
-              <span>{c}</span>
+              {hideChoiceText ? (
+                <span className="font-bold text-info">{LABELS[i]}</span>
+              ) : (
+                <>
+                  <span className="font-bold text-info">{LABELS[i]}.</span>
+                  <span>{c}</span>
+                </>
+              )}
             </button>
           );
         })}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { AttemptForClient } from "@/features/attempts/get-attempt";
 import { QuestionCard } from "@/components/questions/QuestionCard";
@@ -19,6 +19,8 @@ export function DrillRunner({ attempt }: { attempt: AttemptForClient }) {
   const [pending, setPending] = useState(false);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [correctCount, setCorrectCount] = useState(0);
+  const [played, setPlayed] = useState<string[]>([]);
+  const playedSet = useMemo(() => new Set(played), [played]);
 
   const q = qs[idx];
   const isLast = idx === qs.length - 1;
@@ -42,6 +44,10 @@ export function DrillRunner({ attempt }: { attempt: AttemptForClient }) {
     } finally {
       setPending(false);
     }
+  }
+
+  function onAudioPlayed(src: string) {
+    setPlayed((p) => (p.includes(src) ? p : [...p, src]));
   }
 
   function next() {
@@ -105,7 +111,7 @@ export function DrillRunner({ attempt }: { attempt: AttemptForClient }) {
       <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
         <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${((idx + (reveal ? 1 : 0)) / qs.length) * 100}%` }} />
       </div>
-      <QuestionCard key={q.id} q={q} index={idx + 1} selected={selected} onSelect={choose} disabled={pending} reveal={reveal ? { answer: reveal.answer, explanation: reveal.explanation } : null} />
+      <QuestionCard q={q} index={idx + 1} selected={selected} onSelect={choose} disabled={pending} reveal={reveal ? { answer: reveal.answer, explanation: reveal.explanation } : null} playedAudio={playedSet} onAudioPlayed={onAudioPlayed} />
       {reveal && (
         <p className={`text-center text-lg font-bold ${reveal.isCorrect ? "text-emerald-300" : "text-danger"}`}>{reveal.isCorrect ? "Chính xác!" : "Chưa đúng"}</p>
       )}
