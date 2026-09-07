@@ -1,6 +1,8 @@
 # Kế hoạch 6: Đọc song ngữ
 
-> **Dành cho agent thực thi:** BẮT BUỘC dùng sub-skill `superpowers:subagent-driven-development` (khuyến nghị) hoặc `superpowers:executing-plans` để làm theo từng task. Các bước dùng cú pháp checkbox (`- [ ]`) để đánh dấu.
+> Trạng thái: ĐÃ HOÀN THÀNH 2026-09-08 trên nhánh plan-6-reading.
+
+> **Dành cho agent thực thi:** BẮT BUỘC dùng sub-skill `superpowers:subagent-driven-development` (khuyến nghị) hoặc `superpowers:executing-plans` để làm theo từng task. Các bước dùng cú pháp checkbox (`- [x]`) để đánh dấu.
 
 **Mục tiêu:** Người học đọc được bài song ngữ Anh–Việt: danh sách bài lọc theo thể loại và độ khó, trang đọc hai cột trên desktop và gộp đoạn trên di động, bôi đen từ trong cột tiếng Anh để tra và lưu từ kèm câu chứa từ. Admin nhập bài từ file JSON bằng script dòng lệnh (quản lý bài đọc trên web thuộc kế hoạch 7).
 
@@ -144,11 +146,11 @@ model ReadingSentence {
 - `it("từ chối câu thiếu tiếng Việt")`.
 
 **Bước:**
-- [ ] Viết test trước, chạy `npm test -- src/features/reading/import-schema.test.ts` thấy đỏ (module chưa có).
-- [ ] Tạo `labels.ts`, `import-schema.ts`; test xanh.
-- [ ] Thêm schema Prisma; chạy `npm run db:migrate -- --name reading` (Postgres Docker phải đang chạy; nếu Docker chưa lên thì `npm run db:up` rồi chờ). Kiểm tra thư mục `prisma/migrations/*_reading` xuất hiện và `npx prisma generate` xong (typecheck cần enum mới).
-- [ ] `npm test`, `npm run typecheck`, `npm run lint`.
-- [ ] Commit: `feat: bảng bài đọc song ngữ và định dạng file nhập`.
+- [x] Viết test trước, chạy `npm test -- src/features/reading/import-schema.test.ts` thấy đỏ (module chưa có).
+- [x] Tạo `labels.ts`, `import-schema.ts`; test xanh.
+- [x] Thêm schema Prisma; chạy `npm run db:migrate -- --name reading` (Postgres Docker phải đang chạy; nếu Docker chưa lên thì `npm run db:up` rồi chờ). Kiểm tra thư mục `prisma/migrations/*_reading` xuất hiện và `npx prisma generate` xong (typecheck cần enum mới).
+- [x] `npm test`, `npm run typecheck`, `npm run lint`.
+- [x] Commit: `feat: bảng bài đọc song ngữ và định dạng file nhập`.
 
 ---
 
@@ -189,10 +191,10 @@ model ReadingSentence {
 - `it("ghi source AI khi được truyền")`.
 
 **Bước:**
-- [ ] Test đỏ → hàm → test xanh.
-- [ ] Script + `package.json`: `"db:import-reading": "tsx prisma/seed/import-reading.ts"`.
-- [ ] Fixture; chạy thật `npm run db:import-reading -- prisma/seed/fixtures/reading-sample.json` để có một bài trong DB (cần Postgres). Ghi id in ra để dùng thử ở Task 4.
-- [ ] `npm test`, `npm run typecheck`, `npm run lint`; commit: `feat: nhập bài đọc song ngữ từ file JSON`.
+- [x] Test đỏ → hàm → test xanh.
+- [x] Script + `package.json`: `"db:import-reading": "tsx prisma/seed/import-reading.ts"`.
+- [x] Fixture; chạy thật `npm run db:import-reading -- prisma/seed/fixtures/reading-sample.json` để có một bài trong DB (cần Postgres). Ghi id in ra để dùng thử ở Task 4.
+- [x] `npm test`, `npm run typecheck`, `npm run lint`; commit: `feat: nhập bài đọc song ngữ từ file JSON`.
 
 ---
 
@@ -230,7 +232,7 @@ model ReadingSentence {
 - `getReading`: `it("trả null khi bài ở DRAFT")` (fake trả null vì where có status).
 
 **Bước:**
-- [ ] Test đỏ → hàm → xanh; commit: `feat: truy vấn danh sách và nội dung bài đọc`.
+- [x] Test đỏ → hàm → xanh; commit: `feat: truy vấn danh sách và nội dung bài đọc`.
 
 ---
 
@@ -249,7 +251,7 @@ if (marked) return marked.textContent?.replace(/\s+/g, " ").trim().slice(0, 300)
 **Test cần có:** `it("ưu tiên phần tử có data-translate-context thay vì thẻ khối")` — `<p><span data-translate-context>Câu một.</span> <span>Câu hai.</span></p>`, node trong span đầu ⇒ `"Câu một."`; `it("vẫn lấy thẻ khối khi không có thuộc tính")`.
 
 **Bước:**
-- [ ] Test đỏ → sửa → xanh; commit: `feat: popup dịch lấy ngữ cảnh theo câu khi có data-translate-context`.
+- [x] Test đỏ → sửa → xanh; commit: `feat: popup dịch lấy ngữ cảnh theo câu khi có data-translate-context`.
 
 ---
 
@@ -270,9 +272,9 @@ if (marked) return marked.textContent?.replace(/\s+/g, " ").trim().slice(0, 300)
 - `ReadingCard`: hiện nhãn thể loại tiếng Việt và số phút đọc ≥ 1.
 
 **Bước:**
-- [ ] Component + test.
-- [ ] Trang; xoá import `ComingSoon` khỏi file này (component vẫn còn dùng nơi khác? kiểm tra bằng grep; nếu không còn ai dùng thì **vẫn giữ** file, kế hoạch sau có thể cần).
-- [ ] `npm test`, `npm run typecheck`, `npm run lint`; commit: `feat: danh sách bài đọc song ngữ có lọc thể loại và độ khó`.
+- [x] Component + test.
+- [x] Trang; xoá import `ComingSoon` khỏi file này (component vẫn còn dùng nơi khác? kiểm tra bằng grep; nếu không còn ai dùng thì **vẫn giữ** file, kế hoạch sau có thể cần).
+- [x] `npm test`, `npm run typecheck`, `npm run lint`; commit: `feat: danh sách bài đọc song ngữ có lọc thể loại và độ khó`.
 
 ---
 
@@ -299,9 +301,9 @@ if (marked) return marked.textContent?.replace(/\s+/g, " ").trim().slice(0, 300)
 - `it("hiện nguồn và giấy phép")`.
 
 **Bước:**
-- [ ] Test đỏ → component → xanh.
-- [ ] Trang `[id]`; mở thử `http://localhost:3000/reading/<id bài mẫu>` bằng `npm run dev` nếu Postgres đang chạy, chụp màn hình Edge headless (`--headless=new --screenshot`) ở 1280px và 390px để kiểm tra hai cột và xếp chồng.
-- [ ] `npm test`, `npm run typecheck`, `npm run lint`; commit: `feat: trang đọc song ngữ hai cột, tô sáng câu và ẩn tiếng Việt trên di động`.
+- [x] Test đỏ → component → xanh.
+- [x] Trang `[id]`; mở thử `http://localhost:3000/reading/<id bài mẫu>` bằng `npm run dev` nếu Postgres đang chạy, chụp màn hình Edge headless (`--headless=new --screenshot`) ở 1280px và 390px để kiểm tra hai cột và xếp chồng.
+- [x] `npm test`, `npm run typecheck`, `npm run lint`; commit: `feat: trang đọc song ngữ hai cột, tô sáng câu và ẩn tiếng Việt trên di động`.
 
 ---
 
@@ -311,10 +313,10 @@ if (marked) return marked.textContent?.replace(/\s+/g, " ").trim().slice(0, 300)
 - Modify: `README.md`, `CLAUDE.md`, file kế hoạch này (đánh dấu hoàn thành).
 
 **Bước:**
-- [ ] README: mục "Đọc song ngữ" (lệnh `npm run db:import-reading -- <file.json> [--draft]`, định dạng file theo đoạn, file mẫu), thêm lệnh vào mục "Lệnh".
-- [ ] CLAUDE.md: thêm lệnh vào khối lệnh; thêm đoạn "Đọc song ngữ": file nhập theo đoạn, server tính `order`/`paragraphIndex`/`wordCount` trong `import-reading.ts`; trang đọc là lưới theo đoạn, không có JS cuộn đồng bộ; `data-translate-context` cho ngữ cảnh câu; cột Việt `data-no-translate`.
-- [ ] Đổi dòng đầu file kế hoạch này thành `> Trạng thái: ĐÃ HOÀN THÀNH <ngày>`.
-- [ ] Commit: `docs: hướng dẫn đọc song ngữ và nhập bài`.
+- [x] README: mục "Đọc song ngữ" (lệnh `npm run db:import-reading -- <file.json> [--draft]`, định dạng file theo đoạn, file mẫu), thêm lệnh vào mục "Lệnh".
+- [x] CLAUDE.md: thêm lệnh vào khối lệnh; thêm đoạn "Đọc song ngữ": file nhập theo đoạn, server tính `order`/`paragraphIndex`/`wordCount` trong `import-reading.ts`; trang đọc là lưới theo đoạn, không có JS cuộn đồng bộ; `data-translate-context` cho ngữ cảnh câu; cột Việt `data-no-translate`.
+- [x] Đổi dòng đầu file kế hoạch này thành `> Trạng thái: ĐÃ HOÀN THÀNH <ngày>`.
+- [x] Commit: `docs: hướng dẫn đọc song ngữ và nhập bài`.
 
 ---
 

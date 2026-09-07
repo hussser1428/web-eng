@@ -15,6 +15,7 @@ Web luyện thi TOEIC Listening & Reading, kèm từ điển bôi đen dịch, t
 8. Thi thử: `/exam` → Đề rút gọn 1 → làm → Nộp bài → xem điểm
 9. Từ vựng: bôi đen một từ tiếng Anh bất kỳ → **Lưu từ** trong popup → `/vocab`
 10. Ôn từ: `/vocab` → **Ôn thẻ** (lật thẻ, tự đánh giá) hoặc **Trắc nghiệm** (4 lựa chọn, hai chiều)
+11. Đọc song ngữ: `npm run db:import-reading -- prisma/seed/fixtures/reading-sample.json` rồi mở `/reading`
 
 ## Nhập câu hỏi và đề thi
 
@@ -35,6 +36,37 @@ Mỗi từ lưu trong sổ tay có lịch ôn riêng theo thuật toán SM-2: tr
 Hết từ đến hạn vẫn ôn được — gọi là **ôn sớm**. Ôn sớm không đẩy lịch ra xa thêm: trả lời đúng thì giữ nguyên hạn cũ, trả lời sai vẫn kéo từ về ôn lại ngày mai.
 
 Trắc nghiệm cần từ điển đủ dày: mỗi câu phải tìm được ba từ khác cùng loại từ và khác nghĩa. Sổ tay quá ít từ hoặc chưa nhập từ điển StarDict thì trang trắc nghiệm sẽ mời chuyển sang ôn thẻ.
+
+## Đọc song ngữ
+
+Nhập bài đọc từ file JSON theo định dạng **đoạn → câu** (mỗi đoạn là mảng câu, mỗi câu có `en` và `vi`). Server tự tính `order` (số thứ tự liên tục), `paragraphIndex` (vị trí đoạn), và `wordCount`:
+
+```bash
+npm run db:import-reading -- <file.json> [--draft]
+# --draft: nhập ở trạng thái DRAFT (chưa hiện cho người dùng)
+# mặc định: nhập ở trạng thái PUBLISHED (công khai ngay)
+```
+
+Định dạng file (xem mẫu `prisma/seed/fixtures/reading-sample.json`):
+```json
+{
+  "title": "The Fox and the Grapes",
+  "genre": "FAIRY_TALE",
+  "level": "A2",
+  "sourceName": "Aesop's Fables",
+  "sourceUrl": "https://...",
+  "license": "Public domain",
+  "paragraphs": [
+    [
+      { "en": "One hot day a fox saw grapes.", "vi": "Một ngày nóng, con cáo thấy nho." },
+      { "en": "He tried to reach them.", "vi": "Nó cố gắng để lấy chúng." }
+    ],
+    [...]
+  ]
+}
+```
+
+Trang đọc (`/reading`) là danh sách bài lọc theo thể loại (HUMOR, FAIRY_TALE, ANIME, NEWS) và độ khó (A2, B1, B2, C1), hiển thị bài đã đăng. Mỗi bài là lưới hai cột trên desktop (Anh phải, Việt trái), xếp chồng trên di động (Anh trên, Việt dưới). Nút trên di động ẩn/hiện cột tiếng Việt. Bôi đen từ trong cột tiếng Anh để tra từ — popup dịch lấy câu chứa từ làm ngữ cảnh (lưu vào sổ từ vựng kèm `sourceContext` là câu).
 
 ## Quản trị
 
@@ -63,6 +95,7 @@ Sinh câu hỏi bằng AI cần các biến môi trường `LLM_BASE_URL`, `LLM_
 - `npm test` – unit test (Vitest)
 - `npm run build` – build production
 - `npm run db:studio` – xem database
+- `npm run db:import-reading -- <file.json> [--draft]` – nhập bài đọc song ngữ
 
 ## Trước khi công khai
 
