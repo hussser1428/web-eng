@@ -1,9 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, within, fireEvent, waitFor } from "@testing-library/react";
 import { QuestionTable } from "./QuestionTable";
-import { setStatusAction } from "@/app/admin/actions";
+import { setStatusAction, generateAudioAction } from "@/app/admin/actions";
 
-vi.mock("@/app/admin/actions", () => ({ setStatusAction: vi.fn(async () => null) }));
+vi.mock("@/app/admin/actions", () => ({
+  setStatusAction: vi.fn(async () => null),
+  generateAudioAction: vi.fn(async () => null),
+}));
 
 const base = {
   id: "q1",
@@ -44,6 +47,31 @@ describe("QuestionTable", () => {
     const fd = vi.mocked(setStatusAction).mock.calls[0][1];
     expect(fd.get("status")).toBe("PUBLISHED");
     expect(fd.getAll("ids")).toEqual(["q1"]);
+  });
+
+  it("nút Tạo audio gửi câu đã tích sang generateAudioAction chứ không đổi trạng thái", async () => {
+    vi.mocked(setStatusAction).mockClear();
+    render(<QuestionTable items={[{ ...base, section: "toeic.p2" }]} />);
+    fireEvent.click(screen.getByRole("checkbox", { name: /The report/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Tạo audio" }));
+
+    await waitFor(() => expect(generateAudioAction).toHaveBeenCalled());
+    const fd = vi.mocked(generateAudioAction).mock.calls[0][1];
+    expect(fd.getAll("ids")).toEqual(["q1"]);
+    expect(setStatusAction).not.toHaveBeenCalled();
+  });
+
+  it("hiện thông báo của cả hai action", async () => {
+    vi.mocked(setStatusAction).mockResolvedValueOnce("Đã đăng 1 câu.");
+    vi.mocked(generateAudioAction).mockResolvedValueOnce("Đã tạo audio cho 1 mục.");
+    render(<QuestionTable items={[base]} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Đăng" }));
+    expect(await screen.findByText("Đã đăng 1 câu.")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Tạo audio" }));
+    expect(await screen.findByText("Đã tạo audio cho 1 mục.")).toBeInTheDocument();
+    expect(screen.getByText("Đã đăng 1 câu.")).toBeInTheDocument();
   });
 
   it("nhãn trạng thái đổi màu theo nháp và đã đăng", () => {

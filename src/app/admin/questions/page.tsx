@@ -10,7 +10,7 @@ import type { ContentStatus, QuestionSource } from "@prisma/client";
 
 export const metadata: Metadata = { title: "Câu hỏi" };
 
-type Search = { section?: string; status?: string; source?: string; q?: string; page?: string };
+type Search = { section?: string; status?: string; source?: string; q?: string; missingAudio?: string; page?: string };
 
 const TRANG_THAI = ["DRAFT", "PUBLISHED"];
 const NGUON = ["AI", "IMPORT", "MANUAL"];
@@ -22,7 +22,7 @@ function hopLe<T extends string>(value: string | undefined, cho: string[]): T | 
 
 function urlTrang(sp: Search, page: number) {
   const p = new URLSearchParams();
-  for (const k of ["section", "status", "source", "q"] as const) if (sp[k]) p.set(k, sp[k]);
+  for (const k of ["section", "status", "source", "q", "missingAudio"] as const) if (sp[k]) p.set(k, sp[k]);
   if (page > 1) p.set("page", String(page));
   const s = p.toString();
   return s ? `/admin/questions?${s}` : "/admin/questions";
@@ -36,6 +36,7 @@ export default async function AdminQuestionsPage({ searchParams }: { searchParam
     status: hopLe<ContentStatus>(sp.status, TRANG_THAI),
     source: hopLe<QuestionSource>(sp.source, NGUON),
     q: sp.q || undefined,
+    missingAudio: sp.missingAudio === "1",
     page: Number(sp.page) || 1,
   });
   const soTrang = Math.max(1, Math.ceil(trang.total / trang.pageSize));
@@ -52,7 +53,13 @@ export default async function AdminQuestionsPage({ searchParams }: { searchParam
         </p>
       </header>
 
-      <QuestionFilters section={sp.section} status={sp.status} source={sp.source} q={sp.q} />
+      <QuestionFilters
+        section={sp.section}
+        status={sp.status}
+        source={sp.source}
+        q={sp.q}
+        missingAudio={sp.missingAudio === "1"}
+      />
 
       <QuestionTable items={trang.items} />
 

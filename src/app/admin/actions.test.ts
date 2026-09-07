@@ -10,6 +10,7 @@ const findUnique = vi.fn();
 const update = vi.fn();
 const create = vi.fn();
 const groupCreate = vi.fn();
+const audioCreate = vi.fn();
 const examCreate = vi.fn();
 const examUpdate = vi.fn();
 const examQuestionCreateMany = vi.fn();
@@ -26,6 +27,7 @@ vi.mock("@/lib/prisma", () => ({
       create: (a: unknown) => create(a),
     },
     questionGroup: { create: (a: unknown) => groupCreate(a) },
+    audioFile: { create: (a: unknown) => audioCreate(a) },
     exam: { create: (a: unknown) => examCreate(a), update: (a: unknown) => examUpdate(a) },
     examQuestion: { createMany: (a: unknown) => examQuestionCreateMany(a) },
     generationJob: {
@@ -39,6 +41,9 @@ vi.mock("@/lib/prisma", () => ({
 const llmMock = vi.fn();
 vi.mock("@/lib/providers/llm", () => ({ getLlmProvider: () => llmMock() }));
 
+const synthesize = vi.fn(async () => new Uint8Array([1, 2, 3]));
+vi.mock("@/lib/providers/tts", () => ({ getTtsProvider: () => ({ synthesize }) }));
+
 const revalidatePath = vi.fn();
 vi.mock("next/cache", () => ({ revalidatePath: (p: string) => revalidatePath(p) }));
 
@@ -50,6 +55,7 @@ import {
   setExamStatusAction,
   generateAction,
   retryJobAction,
+  generateAudioAction,
 } from "./actions";
 
 function form(ids: string[], status: string) {
@@ -473,7 +479,7 @@ describe("generateAction", () => {
   });
 
   it("từ chối Part chưa hỗ trợ và số câu ngoài 1–10", async () => {
-    const loi = "Chọn Part 5, 6 hoặc 7 và số câu từ 1 đến 10.";
+    const loi = "Chọn Part 2–7 và số câu từ 1 đến 10.";
     await expect(generateAction(null, formSinh({ section: "toeic.p1" }))).resolves.toBe(loi);
     await expect(generateAction(null, formSinh({ count: "11" }))).resolves.toBe(loi);
     await expect(generateAction(null, formSinh({ count: "0" }))).resolves.toBe(loi);
@@ -565,5 +571,71 @@ describe("retryJobAction", () => {
     await expect(retryJobAction(formChayLai("j0"))).resolves.toBeUndefined();
 
     expect(jobCreate).not.toHaveBeenCalled();
+  });
+});
+
+describe("generateAudioAction", () => {
+  function formAudio(ids: string[]) {
+    const fd = new FormData();
+    for (const id of ids) fd.append("ids", id);
+    return fd;
+  }
+
+  beforeEach(() => {
+    findMany.mockReset();
+    update.mockReset();
+    audioCreate.mockReset();
+    revalidatePath.mockReset();
+    synthesize.mockClear();
+    synthesize.mockResolvedValue(new Uint8Array([1, 2, 3]));
+    authMock.mockResolvedValue({ user: { id: "u1", role: "ADMIN" } });
+    audioCreate.mockResolvedValue({ id: "a1" });
+    update.mockResolvedValue({});
+  });
+
+  it("ném FORBIDDEN khi không phải admin", async () => {
+    authMock.mockResolvedValue({ user: { id: "u1", role: "USER" } });
+
+    await expect(generateAudioAction(null, formAudio(["q1"]))).rejects.toThrow("FORBIDDEN");
+    expect(findMany).not.toHaveBeenCalled();
+  });
+
+  it("chưa tích câu nào thì báo và không gọi TTS", async () => {
+    await expect(generateAudioAction(null, formAudio([]))).resolves.toBe("Chưa chọn câu nào.");
+    expect(findMany).not.toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("tổng kết số mục đã tạo, bỏ qua và lỗi rồi làm mới trang", async () => {
+    findMany.mockResolvedValue([
+      { id: "q1", section: "toeic.p2", transcript: "Q: Hi there?", audioUrl: null, groupId: null, group: null },
+      { id: "q2", section: "toeic.p2", transcript: null, audioUrl: null, groupId: null, group: null },
+    ]);
+
+    await expect(generateAudioAction(null, formAudio(["q1", "q2"]))).resolves.toBe(
+      "Đã tạo audio cho 1 mục, bỏ qua 1 (đã có audio hoặc không có transcript), lỗi 0.",
+    );
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/questions");
+  });
+
+  it("nêu mã lỗi đầu tiên khi TTS hỏng", async () => {
+    findMany.mockResolvedValue([
+      { id: "q1", section: "toeic.p2", transcript: "Q: Hi?", audioUrl: null, groupId: null, group: null },
+    ]);
+    synthesize.mockRejectedValue(new Error("TTS_UNAVAILABLE"));
+
+    await expect(generateAudioAction(null, formAudio(["q1"]))).resolves.toBe(
+      "Đã tạo audio cho 0 mục, bỏ qua 0 (đã có audio hoặc không có transcript), lỗi 1 (TTS_UNAVAILABLE).",
+    );
+  });
+
+  it("báo khi chọn quá 10 mục", async () => {
+    findMany.mockResolvedValue([]);
+    const ids = Array.from({ length: 12 }, (_, i) => `q${i}`);
+
+    const r = await generateAudioAction(null, formAudio(ids));
+
+    expect(r).toContain("Chỉ xử lý 10 mục đầu.");
+    expect(findMany.mock.calls[0][0].where.id.in).toHaveLength(10);
   });
 });

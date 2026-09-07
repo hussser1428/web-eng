@@ -1,7 +1,8 @@
 import type { PrismaClient } from "@prisma/client";
 import type { LlmProvider } from "@/lib/providers/llm/types";
 import { importQuestions } from "@/features/questions/import-questions";
-import { questionFileSchema, type QuestionFile } from "@/features/questions/import-schema";
+import { questionFileSchema } from "@/features/questions/import-schema";
+import { askLlmJson } from "./llm-json";
 import { MAX_COUNT } from "./prompts/limits";
 import { buildPrompt, type PromptSection } from "./prompts";
 
@@ -30,13 +31,8 @@ function errorCode(e: unknown): string {
   return /^[A-Z_]+(:.*)?$/.test(m) ? m : "LLM_UNAVAILABLE";
 }
 
-/** Ghi chú gửi lại cho model ở lần thử thứ hai (tiếng Anh, vì người đọc là model). */
-function retryNote(reason: string): string {
-  return `\n\nPrevious JSON was invalid: ${reason}. Fix it and return the corrected JSON object only.`;
-}
-
 /**
- * Sinh câu hỏi Part 5–7 bằng LLM rồi nhập vào kho dưới dạng nháp (`DRAFT`, `source: "AI"`).
+ * Sinh câu hỏi Part 2–7 bằng LLM rồi nhập vào kho dưới dạng nháp (`DRAFT`, `source: "AI"`).
  * Không tin kết quả model: luôn qua Zod, ép `certificate`/`section` theo input, thử lại đúng một lần khi JSON sai.
  */
 export async function generateQuestions(
@@ -62,23 +58,7 @@ export async function generateQuestions(
     // `buildPrompt` ném UNSUPPORTED_SECTION với Part chưa hỗ trợ
     const prompt = buildPrompt(input.section as PromptSection, { count, skillTag: input.skillTag });
 
-    let data: QuestionFile | null = null;
-    let note = "";
-    for (let attempt = 0; attempt < 2 && !data; attempt++) {
-      let raw: unknown;
-      try {
-        raw = await llm.generateJson({ system: prompt.system, user: prompt.user + note });
-      } catch (e) {
-        if (errorCode(e) !== "LLM_BAD_JSON") throw e; // hết hạn mức hoặc dịch vụ hỏng: không thử lại
-        note = retryNote("the response was not valid JSON");
-        continue;
-      }
-      const parsed = questionFileSchema.safeParse(raw);
-      if (parsed.success) data = parsed.data;
-      else note = retryNote(parsed.error.issues.slice(0, 3).map((i) => `${i.path.join(".")}: ${i.message}`).join("; "));
-    }
-
-    if (!data) throw new Error("LLM_BAD_JSON");
+    const data = await askLlmJson(llm, prompt, questionFileSchema);
 
     // Không tin section/certificate model trả về
     data.certificate = certificate;

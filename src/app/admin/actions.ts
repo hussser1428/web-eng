@@ -4,11 +4,13 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getLlmProvider } from "@/lib/providers/llm";
+import { getTtsProvider } from "@/lib/providers/tts";
 import { requireAdmin } from "@/lib/require-admin";
 import { getCertificate, getSection } from "@/features/certificates";
 import { buildExam } from "@/features/admin/build-exam";
 import { generateQuestions, MAX_COUNT } from "@/features/admin/generate-questions";
 import { setExamStatus } from "@/features/admin/set-exam-status";
+import { generateAudio, MAX_TTS_ITEMS } from "@/features/admin/tts/generate-audio";
 import { setQuestionStatus } from "@/features/admin/set-question-status";
 import { updateQuestion } from "@/features/admin/update-question";
 import { updateQuestionSchema } from "@/features/admin/update-question-schema";
@@ -174,12 +176,12 @@ const LOI_SINH: Record<string, string> = {
   LLM_RATE_LIMITED: "Hết hạn mức, thử lại sau vài phút",
   LLM_BAD_JSON: "Model trả về JSON không hợp lệ, hãy thử lại",
   LLM_UNAVAILABLE: "Không gọi được LLM",
-  UNSUPPORTED_SECTION: "Chỉ hỗ trợ Part 5, 6, 7",
+  UNSUPPORTED_SECTION: "Chỉ hỗ trợ Part 2–7",
 };
 
 const sinhSchema = z.object({
-  // Part 1–4 cần audio/ảnh nên chưa sinh được; chặn ở đây thay vì để prompt ném lỗi.
-  section: z.enum(["toeic.p5", "toeic.p6", "toeic.p7"]),
+  // Part 1 cần ảnh nên chưa sinh được; chặn ở đây thay vì để prompt ném lỗi.
+  section: z.enum(["toeic.p2", "toeic.p3", "toeic.p4", "toeic.p5", "toeic.p6", "toeic.p7"]),
   count: z.coerce.number().int().min(1).max(MAX_COUNT),
   // Ô để trống gửi lên chuỗi rỗng, params của job cũ lưu `null`: cả hai đều nghĩa là không ghim kỹ năng.
   skillTag: z.string().trim().min(1).optional().catch(undefined),
@@ -210,7 +212,7 @@ export async function generateAction(_prev: string | null, formData: FormData): 
     count: formData.get("count"),
     skillTag: formData.get("skillTag"),
   });
-  if (!parsed.success) return "Chọn Part 5, 6 hoặc 7 và số câu từ 1 đến 10.";
+  if (!parsed.success) return "Chọn Part 2–7 và số câu từ 1 đến 10.";
 
   return chaySinh(admin.id, parsed.data);
 }
@@ -227,4 +229,20 @@ export async function retryJobAction(formData: FormData): Promise<void> {
   if (!parsed.success) return;
 
   await chaySinh(admin.id, parsed.data);
+}
+
+/** Tạo audio từ transcript cho các câu Listening đã tích chọn. Trả một dòng tổng kết cho `useActionState`. */
+export async function generateAudioAction(_prev: string | null, formData: FormData): Promise<string | null> {
+  await requireAdmin("action");
+
+  const ids = formData.getAll("ids").map(String);
+  if (ids.length === 0) return "Chưa chọn câu nào.";
+
+  const r = await generateAudio(prisma, getTtsProvider(), { ids });
+  revalidatePath("/admin/questions");
+
+  // Chỉ nêu mã lỗi đầu tiên: cả lô thường hỏng vì cùng một lý do, không cần liệt kê hết.
+  const loi = r.failed > 0 ? ` (${r.errors[0]?.split(": ").at(-1) ?? "TTS_UNAVAILABLE"})` : "";
+  const thua = r.overflow > 0 ? ` Chỉ xử lý ${MAX_TTS_ITEMS} mục đầu.` : "";
+  return `Đã tạo audio cho ${r.done} mục, bỏ qua ${r.skipped} (đã có audio hoặc không có transcript), lỗi ${r.failed}${loi}.${thua}`;
 }

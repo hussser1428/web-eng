@@ -11,6 +11,17 @@ describe("QuestionFilters", () => {
     expect(screen.getByLabelText("Trạng thái")).toBeInTheDocument();
     expect(screen.getByLabelText("Nguồn")).toBeInTheDocument();
     expect(screen.getByLabelText("Tìm trong đề bài")).toBeInTheDocument();
+    expect(screen.getByLabelText("Thiếu audio")).toHaveAttribute("name", "missingAudio");
+    expect(screen.getByLabelText("Thiếu audio")).toHaveAttribute("value", "1");
+  });
+
+  it("giữ trạng thái ô Thiếu audio", () => {
+    const { unmount } = render(<QuestionFilters />);
+    expect(screen.getByLabelText("Thiếu audio")).not.toBeChecked();
+    unmount();
+
+    render(<QuestionFilters missingAudio />);
+    expect(screen.getByLabelText("Thiếu audio")).toBeChecked();
   });
 
   it("liệt kê đủ 7 phần thi TOEIC kèm lựa chọn tất cả", () => {

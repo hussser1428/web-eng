@@ -35,6 +35,20 @@ describe("GenerateForm", () => {
     expect(screen.getByLabelText("Số câu (1–10)")).toHaveValue(5);
   });
 
+  it("cho chọn Part 2 đến 7, bỏ Part 1", () => {
+    render(<GenerateForm llmReady />);
+
+    const phanThi = screen.getByLabelText("Phần thi") as HTMLSelectElement;
+    expect([...phanThi.options].map((o) => o.value)).toEqual([
+      "toeic.p2",
+      "toeic.p3",
+      "toeic.p4",
+      "toeic.p5",
+      "toeic.p6",
+      "toeic.p7",
+    ]);
+  });
+
   it("gợi ý danh sách kỹ năng cố định", () => {
     render(<GenerateForm llmReady />);
 

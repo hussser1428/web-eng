@@ -13,10 +13,10 @@ const NGUON = [
 
 const selectClass = "rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent";
 
-type Props = { section?: string; status?: string; source?: string; q?: string };
+type Props = { section?: string; status?: string; source?: string; q?: string; missingAudio?: boolean };
 
 /** Bộ lọc danh sách câu hỏi: form GET nên bộ lọc nằm luôn trên URL, chia sẻ và tải lại được. */
-export function QuestionFilters({ section = "", status = "", source = "", q = "" }: Props) {
+export function QuestionFilters({ section = "", status = "", source = "", q = "", missingAudio = false }: Props) {
   return (
     <form method="GET" className="card flex flex-wrap items-end gap-3 p-4">
       <label className="flex flex-col gap-1">
@@ -63,6 +63,11 @@ export function QuestionFilters({ section = "", status = "", source = "", q = ""
           placeholder="Một phần đề bài"
           className="rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
         />
+      </label>
+
+      <label className="flex items-center gap-2 py-2 text-sm">
+        <input type="checkbox" name="missingAudio" value="1" defaultChecked={missingAudio} className="size-4" />
+        Thiếu audio
       </label>
 
       <button type="submit" className="btn-primary rounded-lg px-5 py-2 text-sm font-semibold">

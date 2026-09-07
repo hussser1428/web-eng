@@ -2,8 +2,8 @@
 
 import { useActionState } from "react";
 import Link from "next/link";
-import { VolumeX } from "lucide-react";
-import { setStatusAction } from "@/app/admin/actions";
+import { Volume2, VolumeX } from "lucide-react";
+import { generateAudioAction, setStatusAction } from "@/app/admin/actions";
 import { TOEIC, getSection } from "@/features/certificates";
 import type { QuestionRow } from "@/features/admin/list-questions";
 
@@ -18,6 +18,7 @@ function dapAn(r: QuestionRow) {
 
 export function QuestionTable({ items }: { items: QuestionRow[] }) {
   const [thongBao, action, dangChay] = useActionState(setStatusAction, null);
+  const [thongBaoAudio, audioAction, dangTaoAudio] = useActionState(generateAudioAction, null);
 
   if (items.length === 0) return <p className="card p-6 text-muted">Không có câu hỏi nào khớp bộ lọc.</p>;
 
@@ -40,7 +41,16 @@ export function QuestionTable({ items }: { items: QuestionRow[] }) {
         >
           Gỡ
         </button>
+        <button
+          formAction={audioAction}
+          disabled={dangTaoAudio}
+          className="flex items-center gap-1.5 rounded-lg border border-line px-5 py-2 text-sm font-medium hover:bg-surface-2 disabled:opacity-50"
+        >
+          <Volume2 size={18} aria-hidden="true" />
+          Tạo audio
+        </button>
         {thongBao && <p className="text-sm text-muted">{thongBao}</p>}
+        {thongBaoAudio && <p className="text-sm text-muted">{thongBaoAudio}</p>}
       </div>
 
       <div className="card overflow-x-auto p-0">
