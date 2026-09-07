@@ -16,6 +16,7 @@
     "db:studio": "prisma studio",
     "db:import-dict": "tsx prisma/seed/import-stardict.ts",
     "db:import-questions": "tsx prisma/seed/import-questions.ts",
+    "db:import-reading": "tsx prisma/seed/import-reading.ts",
     "db:make-admin": "tsx prisma/seed/make-admin.ts"
   },
   "dependencies": {
