@@ -14,7 +14,11 @@ export type TranslateResult =
 export type TranslateDeps = {
   db: Pick<PrismaClient, "word" | "translationCache">;
   provider: TranslateProvider;
+  rand?: () => number;
+  now?: () => Date;
 };
+
+const CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 
 export function cacheKey(text: string, from: Lang, to: Lang): string {
   return createHash("sha256").update(`${from}:${to}:${text.trim().toLowerCase()}`).digest("hex");
@@ -45,6 +49,11 @@ export async function translateText(deps: TranslateDeps, rawText: string): Promi
 
   try {
     await deps.db.translationCache.create({ data: { key, text, from, to, result } });
+    // dọn cache cũ theo xác suất 1% mỗi lần ghi, tránh chạy DELETE trên mọi request
+    if ((deps.rand ?? Math.random)() < 0.01) {
+      const cutoff = new Date((deps.now ?? (() => new Date()))().getTime() - CACHE_TTL_MS);
+      await deps.db.translationCache.deleteMany({ where: { createdAt: { lt: cutoff } } });
+    }
   } catch (e) {
     console.warn("translationCache write failed", e);
   }

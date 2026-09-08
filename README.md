@@ -116,10 +116,9 @@ Quy ước transcript (mỗi dòng một lượt nói):
 
 ## Trước khi công khai
 
-- Giới hạn tần suất (rate limit) cho `/api/translate` — API không cần đăng nhập, có thể bị lạm dụng để nghẽn LibreTranslate.
-- Giới hạn kích thước bảng `TranslationCache` (TTL hoặc dọn định kỳ) — mỗi lần dịch hụt cache ghi thêm một dòng.
-- Ghim phiên bản image LibreTranslate trong `docker-compose.yml` thay vì dùng `latest`.
 - Cấu hình Google OAuth thật (`AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET`) trước khi bật đăng nhập bằng Google.
+
+Đã xong: rate limit `/api/translate` (30 lượt/phút/IP, `src/lib/rate-limit.ts`), dọn `TranslationCache` quá 90 ngày theo xác suất 1% mỗi lần ghi cache mới, ghim image LibreTranslate ở `docker-compose.yml` (nâng version: xem comment cạnh dòng `image:`).
 
 ## Việc còn nợ (đã biết, chưa chặn)
 

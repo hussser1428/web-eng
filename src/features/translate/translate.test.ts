@@ -15,6 +15,7 @@ function makeDeps(cacheRows: Record<string, string> = {}) {
         cacheRows[where.key] ? { key: where.key, result: cacheRows[where.key] } : null
       ),
       create: vi.fn(async () => ({})),
+      deleteMany: vi.fn(async () => ({ count: 0 })),
     },
   };
   const provider = { translate: vi.fn(async (t: string) => `[dịch] ${t}`) };
@@ -76,5 +77,28 @@ describe("translateText", () => {
     expect(r).toEqual({ kind: "text", from: "en", to: "vi", result: "[dịch] some phrase here" });
     expect(deps.provider.translate).toHaveBeenCalledOnce();
     warn.mockRestore();
+  });
+
+  it("rand < 0.01 thì dọn cache cũ hơn 90 ngày tính từ now tiêm được", async () => {
+    const now = new Date("2026-09-08T00:00:00.000Z");
+    await translateText(
+      { ...deps, rand: () => 0, now: () => now } as never,
+      "some phrase here"
+    );
+    expect(deps.db.translationCache.deleteMany).toHaveBeenCalledWith({
+      where: { createdAt: { lt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000) } },
+    });
+  });
+
+  it("rand >= 0.01 thì không dọn cache", async () => {
+    await translateText({ ...deps, rand: () => 0.5 } as never, "some phrase here");
+    expect(deps.db.translationCache.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("cache hit thì không dọn cache dù rand nhỏ", async () => {
+    const key = cacheKey("xin chào", "vi", "en");
+    deps = makeDeps({ [key]: "hello" });
+    await translateText({ ...deps, rand: () => 0 } as never, "xin chào");
+    expect(deps.db.translationCache.deleteMany).not.toHaveBeenCalled();
   });
 });
