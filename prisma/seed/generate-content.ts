@@ -1,7 +1,7 @@
 // Dùng: npm run db:generate-content -- <questions|audio|readings|check|publish|exam|all>
 import { PrismaClient } from "@prisma/client";
 import { TARGETS, planBatches, readingSpecs } from "../../src/features/admin/seed-plan";
-import { checkQuestion, checkReading } from "../../src/features/admin/content-check";
+import { checkQuestion, checkReading, loiThat, phanLoaiCau } from "../../src/features/admin/content-check";
 import { generateQuestions } from "../../src/features/admin/generate-questions";
 import { generateReading } from "../../src/features/admin/generate-reading";
 import { generateAudio, MAX_TTS_ITEMS } from "../../src/features/admin/tts/generate-audio";
@@ -147,8 +147,6 @@ async function readings() {
  * `MISSING_AUDIO` không phải lỗi nội dung: bước `audio` tạo audio sau, và `setQuestionStatus`
  * tự chặn không cho đăng. Nên câu chỉ thiếu audio thì không xoá, không loại khỏi danh sách đăng.
  */
-const loiThat = (errors: string[]) => errors.filter((e) => e !== "MISSING_AUDIO");
-
 /** Chạy `checkQuestion`/`checkReading` trên toàn bộ kho, trả về những bản ghi có lỗi. */
 async function soatLoi() {
   const cau = await prisma.question.findMany({ include: { group: true } });
@@ -174,55 +172,51 @@ async function check() {
     console.log("\nid | title | lỗi");
     for (const { r, errors } of baiLoi) console.log(`${r.id} | ${r.title} | ${errors.join(", ")}`);
   }
-  if (cauLoi.length === 0 && baiLoi.length === 0) {
-    console.log("Không có lỗi.");
+  const daSoat = cau.map((q) => ({ id: q.id, status: q.status, groupId: q.groupId, errors: cauLoi.find((x) => x.q.id === q.id)?.errors ?? [] }));
+  const soCauLoiThat = cauLoi.filter((x) => loiThat(x.errors).length > 0).length;
+  const thieuAudio = cauLoi.length - soCauLoiThat;
+  if (soCauLoiThat === 0 && baiLoi.length === 0) {
+    console.log(thieuAudio > 0 ? `Không có lỗi nội dung; ${thieuAudio} câu thiếu audio (chạy bước audio).` : "Không có lỗi.");
     return;
   }
 
   if (!process.argv.includes("--delete-bad")) {
     console.error(
-      `\n${cauLoi.length} câu và ${baiLoi.length} bài có lỗi. Thêm --delete-bad để xoá bản nháp lỗi thật (chỉ thiếu audio thì giữ).`,
+      `\n${soCauLoiThat} câu và ${baiLoi.length} bài có lỗi thật (${thieuAudio} câu chỉ thiếu audio). Thêm --delete-bad để xoá bản nháp lỗi thật.`,
     );
     process.exitCode = 1;
     return;
   }
 
   // Chỉ xoá bản nháp có lỗi thật: nội dung đã đăng là do admin duyệt, thiếu audio thì đợi bước `audio`.
-  const cauXoa = cauLoi.filter((x) => x.q.status === "DRAFT" && loiThat(x.errors).length > 0);
+  const { nhomXoa, cauLeXoa, nhomGiu } = phanLoaiCau(daSoat);
   const baiXoa = baiLoi.filter((x) => x.r.status === "DRAFT");
-  const giuLai = cauLoi.length - cauXoa.length + (baiLoi.length - baiXoa.length);
 
-  // Câu thuộc nhóm thì xoá cả nhóm: `Question.group` là SetNull nên phải xoá câu trước rồi mới xoá nhóm.
-  // Nhóm nào còn câu đã đăng thì để nguyên, tránh xoá lây sang nội dung đã duyệt.
-  const nhomLoi = [...new Set(cauXoa.map((x) => x.q.groupId).filter((id): id is string => Boolean(id)))];
-  const nhomXoa = nhomLoi.filter((id) => !cau.some((q) => q.groupId === id && q.status !== "DRAFT"));
-
+  // `Question.group` là SetNull nên phải xoá câu trước rồi mới xoá nhóm.
   let soCau = 0;
   for (const groupId of nhomXoa) {
     soCau += (await prisma.question.deleteMany({ where: { groupId } })).count;
     await prisma.questionGroup.delete({ where: { id: groupId } });
   }
-  const cauLe = cauXoa.filter((x) => !x.q.groupId).map((x) => x.q.id);
-  soCau += (await prisma.question.deleteMany({ where: { id: { in: cauLe } } })).count;
+  soCau += (await prisma.question.deleteMany({ where: { id: { in: cauLeXoa } } })).count;
   const soBai = (await prisma.reading.deleteMany({ where: { id: { in: baiXoa.map((x) => x.r.id) } } })).count;
 
   console.log(`\nĐã xoá ${soCau} câu (${nhomXoa.length} nhóm) và ${soBai} bài đọc.`);
-  if (giuLai > 0) console.log(`Giữ lại ${giuLai} bản ghi: đã đăng hoặc chỉ thiếu audio.`);
-  if (nhomXoa.length < nhomLoi.length) {
-    console.log(`Giữ lại ${nhomLoi.length - nhomXoa.length} nhóm còn câu đã đăng.`);
-  }
+  if (nhomGiu > 0) console.log(`Giữ lại ${nhomGiu} nhóm còn câu đã đăng.`);
+  if (baiLoi.length > baiXoa.length) console.log(`Giữ lại ${baiLoi.length - baiXoa.length} bài đã đăng.`);
 }
 
 async function publish() {
   const { cau, bai, cauLoi, baiLoi } = await soatLoi();
-  // Câu chỉ thiếu audio vẫn gửi lên: `setQuestionStatus` tự chặn và trả về trong `blocked`.
-  const cauXau = new Set(cauLoi.filter((x) => loiThat(x.errors).length > 0).map((x) => x.q.id));
+  const daSoat = cau.map((q) => ({ id: q.id, status: q.status, groupId: q.groupId, errors: cauLoi.find((x) => x.q.id === q.id)?.errors ?? [] }));
+  // Nhóm đi nguyên: một câu trong nhóm lỗi thật thì cả nhóm không đăng. Câu chỉ thiếu audio vẫn gửi lên:
+  // `setQuestionStatus` tự chặn và trả về trong `blocked`.
+  const { dang } = phanLoaiCau(daSoat);
+  const soNhap = cau.filter((q) => q.status === "DRAFT").length;
+  const r = await setQuestionStatus(prisma, { ids: dang, status: "PUBLISHED" });
+  console.log(`Câu: đăng ${r.updated}, chặn ${r.blocked.length} (thiếu audio), bỏ ${soNhap - dang.length} câu lỗi hoặc cùng nhóm câu lỗi.`);
+
   const baiXau = new Set(baiLoi.map((x) => x.r.id));
-
-  const ids = cau.filter((q) => q.status === "DRAFT" && !cauXau.has(q.id)).map((q) => q.id);
-  const r = await setQuestionStatus(prisma, { ids, status: "PUBLISHED" });
-  console.log(`Câu: đăng ${r.updated}, chặn ${r.blocked.length} (thiếu audio), bỏ ${cauXau.size} câu lỗi.`);
-
   let soBai = 0;
   for (const b of bai.filter((x) => x.status === "DRAFT" && !baiXau.has(x.id))) {
     await setReadingStatus(prisma, { id: b.id, status: "PUBLISHED" });
@@ -252,7 +246,8 @@ const CACH_DUNG = `Cách dùng: npm run db:generate-content -- <lệnh>
   readings           sinh bài đọc song ngữ cho đủ 20 bài
   check              soát lỗi nội dung; --delete-bad xoá bản nháp lỗi thật
                      (MISSING_AUDIO không tính là lỗi, bản đã đăng không xoá)
-  publish            đăng mọi câu/bài nháp không lỗi; câu thiếu audio bị chặn lại
+  publish            đăng MỌI câu/bài nháp không lỗi (kể cả nháp admin để lại); nhóm có câu lỗi
+                     thì cả nhóm không đăng; câu thiếu audio bị chặn lại
   exam ["Tên đề"]    ghép và đăng một đề thi
   all                questions → audio → readings → check (không đăng)`;
 

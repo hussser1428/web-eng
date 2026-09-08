@@ -148,8 +148,9 @@ docker compose exec -T db psql -U app toeic < backup.sql
 - Cấu hình Google OAuth thật (`AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET`) trước khi bật đăng nhập bằng Google.
 - Đặt `AUTH_TRUST_HOST="true"` khi chạy production ngoài Vercel.
 - Sao lưu `pg_dump` định kỳ (lệnh ở mục "Dữ liệu ban đầu"); audio và câu hỏi đều nằm trong Postgres.
+- Chạy sau một reverse proxy (Nginx/Caddy/Vercel) có đặt `X-Forwarded-For`: rate limit `/api/translate` khoá theo tài khoản khi đã đăng nhập, còn khách thì theo IP lấy từ header này — không có proxy thì mọi khách dùng chung một khoá.
 
-Đã xong: rate limit `/api/translate` (30 lượt/phút/IP, `src/lib/rate-limit.ts`), dọn `TranslationCache` quá 90 ngày theo xác suất 1% mỗi lần ghi cache mới, ghim image LibreTranslate ở `docker-compose.yml` (nâng version: xem comment cạnh dòng `image:`).
+Đã xong: rate limit `/api/translate` (30 lượt/phút theo tài khoản hoặc IP, `src/lib/rate-limit.ts`), dọn `TranslationCache` quá 90 ngày theo xác suất 1% mỗi lần ghi cache mới, ghim image LibreTranslate ở `docker-compose.yml` (nâng version: xem comment cạnh dòng `image:`).
 
 ## Việc còn nợ (đã biết, chưa chặn)
 

@@ -61,7 +61,29 @@ export function checkReading(r: { sentences: Array<{ en: string; vi: string }> }
 
   if (r.sentences.length < 8) errors.push("TOO_SHORT");
   if (r.sentences.some((s) => !hasVietnamese(s.vi))) errors.push("VI_NOT_VI");
-  if (r.sentences.some((s) => hasVietnamese(s.en))) errors.push("EN_HAS_VI");
+  // Đếm tỉ lệ thay vì `some`: từ mượn có dấu như "café", "Pokémon" cũng khớp regex dấu tiếng Việt.
+  if (r.sentences.filter((s) => hasVietnamese(s.en)).length > r.sentences.length * 0.3) errors.push("EN_HAS_VI");
 
   return errors;
+}
+
+/** `MISSING_AUDIO` không phải lỗi nội dung — bước `audio` sẽ bù. */
+export const loiThat = (errors: string[]) => errors.filter((e) => e !== "MISSING_AUDIO");
+
+export type CauDaSoat = { id: string; status: string; groupId: string | null; errors: string[] };
+
+/**
+ * Quyết định xoá/đăng cho cả kho câu sau khi soát. Nhóm luôn đi nguyên:
+ * - `nhomXoa`: nhóm có câu lỗi thật và mọi câu đều là nháp; `cauLeXoa`: câu lẻ nháp lỗi thật.
+ * - `nhomGiu`: nhóm có câu lỗi thật nhưng còn câu đã đăng (admin đã duyệt) — không đụng.
+ * - `dang`: câu nháp không lỗi thật và không thuộc nhóm có câu lỗi thật.
+ */
+export function phanLoaiCau(cau: CauDaSoat[]): { nhomXoa: string[]; cauLeXoa: string[]; nhomGiu: number; dang: string[] } {
+  const nhomXau = new Set(cau.filter((q) => q.groupId && loiThat(q.errors).length > 0).map((q) => q.groupId as string));
+  const nhomXoa = [...nhomXau].filter((id) => cau.every((q) => q.groupId !== id || q.status === "DRAFT"));
+  const cauLeXoa = cau.filter((q) => !q.groupId && q.status === "DRAFT" && loiThat(q.errors).length > 0).map((q) => q.id);
+  const dang = cau
+    .filter((q) => q.status === "DRAFT" && loiThat(q.errors).length === 0 && !(q.groupId && nhomXau.has(q.groupId)))
+    .map((q) => q.id);
+  return { nhomXoa, cauLeXoa, nhomGiu: nhomXau.size - nhomXoa.length, dang };
 }

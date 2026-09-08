@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { checkQuestion, checkReading, type QuestionForCheck } from "./content-check";
+import { checkQuestion, checkReading, phanLoaiCau, type QuestionForCheck } from "./content-check";
 
 function baseQuestion(overrides: Partial<QuestionForCheck> = {}): QuestionForCheck {
   return {
@@ -99,9 +99,38 @@ describe("checkReading", () => {
     expect(errors).toContain("EN_HAS_VI");
   });
 
+  it("không báo EN_HAS_VI khi chỉ một từ mượn có dấu như café", () => {
+    const sentences = Array.from({ length: 8 }, (_, i) => ({ en: i === 0 ? "We met at the café." : "A cat sat.", vi: "Con mèo ngồi." }));
+    expect(checkReading({ sentences })).not.toContain("EN_HAS_VI");
+  });
+
   it("bài hợp lệ thì không có lỗi", () => {
     const sentences = Array.from({ length: 8 }, () => ({ en: "A cat sat on the mat.", vi: "Con mèo ngồi trên thảm." }));
     const errors = checkReading({ sentences });
     expect(errors).toEqual([]);
+  });
+});
+
+describe("phanLoaiCau", () => {
+  const q = (id: string, status: string, groupId: string | null, errors: string[] = []) => ({ id, status, groupId, errors });
+
+  it("xoá cả nhóm nháp có câu lỗi thật, câu lẻ nháp lỗi thật; không đăng câu cùng nhóm", () => {
+    const r = phanLoaiCau([
+      q("a", "DRAFT", "g1", ["ANSWER_OUT_OF_RANGE"]),
+      q("b", "DRAFT", "g1"),
+      q("c", "DRAFT", null, ["DUPLICATE_CHOICES"]),
+      q("d", "DRAFT", null),
+    ]);
+    expect(r).toEqual({ nhomXoa: ["g1"], cauLeXoa: ["c"], nhomGiu: 0, dang: ["d"] });
+  });
+
+  it("giữ nhóm còn câu đã đăng, không xoá và không đăng thêm câu của nhóm đó", () => {
+    const r = phanLoaiCau([q("a", "DRAFT", "g1", ["ANSWER_OUT_OF_RANGE"]), q("b", "PUBLISHED", "g1")]);
+    expect(r).toEqual({ nhomXoa: [], cauLeXoa: [], nhomGiu: 1, dang: [] });
+  });
+
+  it("chỉ thiếu audio thì không xoá và vẫn đưa vào danh sách đăng", () => {
+    const r = phanLoaiCau([q("a", "DRAFT", null, ["MISSING_AUDIO"]), q("b", "PUBLISHED", null, ["MISSING_AUDIO"])]);
+    expect(r).toEqual({ nhomXoa: [], cauLeXoa: [], nhomGiu: 0, dang: ["a"] });
   });
 });

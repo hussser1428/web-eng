@@ -12,13 +12,15 @@ const bodySchema = z.object({ text: z.string() });
 const limiter = createRateLimiter({ limit: 30, windowMs: 60_000 });
 
 export async function POST(req: Request) {
+  // Khoá theo tài khoản khi đã đăng nhập; khách thì theo IP. Không có reverse proxy đặt
+  // x-forwarded-for thì mọi khách dùng chung một khoá "local" (xem README, mục "Trước khi công khai").
+  const session = await auth();
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "local";
-  if (!limiter.check(ip)) return NextResponse.json({ error: "RATE_LIMITED" }, { status: 429 });
+  if (!limiter.check(session?.user?.id ?? ip)) return NextResponse.json({ error: "RATE_LIMITED" }, { status: 429 });
 
   const parsed = bodySchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "INVALID" }, { status: 400 });
 
-  const session = await auth();
   try {
     const result = await translateText({ db: prisma, provider: getTranslateProvider() }, parsed.data.text);
     return NextResponse.json({ ...result, canSave: Boolean(session?.user?.id) });
