@@ -44,6 +44,13 @@ describe("QuestionCard", () => {
     expect(screen.queryByText("through")).not.toBeInTheDocument();
   });
 
+  it("Part 1 chỉ hiện chữ cái khi chưa chấm", () => {
+    const p1: QuestionForClient = { ...q, section: "toeic.p1", stem: "", group: null };
+    render(<QuestionCard q={p1} index={1} selected={null} onSelect={() => {}} />);
+    expect(screen.getByRole("radio", { name: "A" })).toBeInTheDocument();
+    expect(screen.queryByText("through")).not.toBeInTheDocument();
+  });
+
   it("Part 2 hiện nội dung sau khi chấm", () => {
     render(<QuestionCard q={p2} index={1} selected={0} onSelect={() => {}} reveal={{ answer: 1, explanation: "Vì..." }} />);
     expect(screen.getByRole("radio", { name: /A\.\s*through/ })).toBeInTheDocument();
