@@ -43,6 +43,31 @@ function gomNhom(rows: Row[]): string[][] {
 }
 
 /**
+ * Chọn các nhóm (theo thứ tự đã xáo, ưu tiên nhóm đứng trước) sao cho tổng đúng `can` câu.
+ * Quy hoạch động kiểu tổng tập con: `truoc[t]` = nhóm cuối dùng để đạt tổng t. Không có tổ hợp
+ * nào đúng thì trả tổng lớn nhất đạt được (để báo thiếu).
+ */
+function chonDuSo(nhomList: string[][], can: number): string[] {
+  const truoc: number[] = Array(can + 1).fill(-1);
+  truoc[0] = -2; // gốc
+  for (let g = 0; g < nhomList.length; g++) {
+    const co = nhomList[g].length;
+    for (let t = can; t >= co; t--) {
+      if (truoc[t] === -1 && truoc[t - co] !== -1) truoc[t] = g;
+    }
+  }
+  let t = can;
+  while (t > 0 && truoc[t] === -1) t--;
+  const lay: string[][] = [];
+  while (t > 0) {
+    const g = truoc[t];
+    lay.push(nhomList[g]);
+    t -= nhomList[g].length;
+  }
+  return lay.reverse().flat();
+}
+
+/**
  * Ghép một đề đủ số câu mỗi phần từ kho câu đã đăng. Câu có `groupId` luôn lấy nguyên nhóm:
  * nhóm nào làm vượt số câu của phần thì bỏ qua, đi tiếp nhóm sau.
  * Thiếu dù chỉ một phần thì trả `shortage` và **không** tạo gì, tránh đề lệch.
@@ -64,13 +89,7 @@ export async function buildExam(
       orderBy: { createdAt: "asc" },
     })) as unknown as Row[];
 
-    const lay: string[] = [];
-    for (const nhom of xaoTron(gomNhom(rows), rand)) {
-      if (lay.length + nhom.length > s.questionCount) continue;
-      lay.push(...nhom);
-      if (lay.length === s.questionCount) break;
-    }
-
+    const lay = chonDuSo(xaoTron(gomNhom(rows), rand), s.questionCount);
     if (lay.length < s.questionCount) shortage.push({ section: s.id, need: s.questionCount, have: lay.length });
     cauHoi.push(...lay);
   }

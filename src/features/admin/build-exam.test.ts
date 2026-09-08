@@ -113,6 +113,19 @@ describe("buildExam", () => {
     });
   });
 
+  it("chọn tổ hợp nhóm đúng số câu, không kẹt như tham lam", async () => {
+    // P7 cần 54: nhóm 4 + 4 + 2 đi trước rồi 8 nhóm 5 là 50, các nhóm 5 còn lại vượt.
+    // Tổ hợp duy nhất đúng 54 là 10 nhóm 5 + một nhóm 4.
+    const p7 = [...nhom("toeic.p7", "a", 4), ...nhom("toeic.p7", "b", 4), ...nhom("toeic.p7", "c", 2),
+      ...Array.from({ length: 10 }, (_, i) => nhom("toeic.p7", `g${i}`, 5)).flat()];
+    const { db, createMany } = fakeDb(kho({ "toeic.p7": p7 }));
+
+    const r = await buildExam(db, { title: "Đề 1", rand: hatGiong(11) });
+
+    expect(r.ok).toBe(true);
+    expect(dsCauHoi(createMany).filter((id) => id.startsWith("toeic.p7")).length).toBe(54);
+  });
+
   it("không tạo đề khi chỉ một Part thiếu", async () => {
     const { db, create, createMany } = fakeDb(kho({ "toeic.p6": Array.from({ length: 15 }, () => cau("toeic.p6")) }));
 
