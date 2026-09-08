@@ -10,12 +10,13 @@ Web luyện thi TOEIC Listening & Reading, kèm từ điển bôi đen dịch, t
 3. `npm install`
 4. `npx prisma migrate dev`
 5. Tải từ điển theo `prisma/seed/fixtures/README.md`, rồi `npm run db:import-dict -- data/star_anhviet`
-6. `npm run dev` và mở http://localhost:3000
-7. Luyện tập: `/drill` → Part 5 → 10 câu
-8. Thi thử: `/exam` → Đề rút gọn 1 → làm → Nộp bài → xem điểm
-9. Từ vựng: bôi đen một từ tiếng Anh bất kỳ → **Lưu từ** trong popup → `/vocab`
-10. Ôn từ: `/vocab` → **Ôn thẻ** (lật thẻ, tự đánh giá) hoặc **Trắc nghiệm** (4 lựa chọn, hai chiều)
-11. Đọc song ngữ: `npm run db:import-reading -- prisma/seed/fixtures/reading-sample.json` rồi mở `/reading`
+6. Đăng ký một tài khoản trên web rồi `npm run db:make-admin -- <email>`; sau đó sinh dữ liệu ban đầu theo mục "Dữ liệu ban đầu" bên dưới (hoặc chỉ nhập mẫu: `npm run db:import-questions -- prisma/seed/fixtures/questions-sample.json --exam "Đề rút gọn 1"`)
+7. `npm run dev` và mở http://localhost:3000
+8. Luyện tập: `/drill` → Part 5 → 10 câu
+9. Thi thử: `/exam` → chọn đề → làm → Nộp bài → xem điểm
+10. Từ vựng: bôi đen một từ tiếng Anh bất kỳ → **Lưu từ** trong popup → `/vocab`
+11. Ôn từ: `/vocab` → **Ôn thẻ** (lật thẻ, tự đánh giá) hoặc **Trắc nghiệm** (4 lựa chọn, hai chiều)
+12. Đọc song ngữ: mở `/reading` (bài do bước 6 sinh, hoặc nhập mẫu `npm run db:import-reading -- prisma/seed/fixtures/reading-sample.json`)
 
 ## Nhập câu hỏi và đề thi
 
@@ -103,6 +104,32 @@ Quy ước transcript (mỗi dòng một lượt nói):
 | 3 | mỗi dòng `M:`/`Man:` hoặc `W:`/`Woman:` | nam/nữ xen kẽ theo tiền tố |
 | 4 | không tiền tố | một giọng dẫn |
 
+## Dữ liệu ban đầu
+
+Đợt dữ liệu đầu tiên (299 câu hỏi Part 1–7, 20 bài đọc, một đề thi thử) sinh bằng script — cần `LLM_API_KEY`, Postgres và một tài khoản (ưu tiên ADMIN, làm người tạo job):
+
+```bash
+npm run db:import-questions -- prisma/seed/fixtures/part1.json --draft   # Part 1 làm tay (ảnh public domain trên Wikimedia)
+npm run db:generate-content -- questions   # sinh Part 2–7 cho đủ số mục tiêu (TARGETS trong src/features/admin/seed-plan.ts), chạy lại được
+npm run db:generate-content -- audio       # tạo audio cho mọi câu Part 1–4 còn thiếu (Edge TTS, không tốn phí)
+npm run db:generate-content -- readings    # sinh 20 bài đọc theo lưới thể loại × trình độ × độ dài
+npm run db:generate-content -- check       # soát lỗi tự động; thêm --delete-bad để xoá bản nháp lỗi thật
+npm run db:generate-content -- publish     # đăng mọi câu/bài nháp không lỗi (câu thiếu audio bị chặn)
+npm run db:generate-content -- exam "Đề thi thử 1"   # ghép 200 câu đã đăng thành một đề và đăng
+# hoặc: npm run db:generate-content -- all
+```
+
+Mỗi lệnh chỉ làm phần còn thiếu nên chạy lại an toàn. LLM quá tải (503/429) thì script chờ 30 s rồi thử lại tối đa 3 lần; đổi model tạm bằng biến môi trường, ví dụ `LLM_MODEL=gemini-3.5-flash-lite npm run db:generate-content -- readings` (`.env` không ghi đè biến đã có).
+
+Đợt dữ liệu đầu được đăng bằng script **sau** kiểm tra tự động (`check`) và một lượt đọc mẫu 40 câu + 5 bài; các đợt sau sinh qua `/admin` và duyệt tay như bình thường.
+
+Sao lưu / khôi phục database:
+
+```bash
+docker compose exec db pg_dump -U app toeic > backup.sql
+docker compose exec -T db psql -U app toeic < backup.sql
+```
+
 ## Docker
 
 `docker compose up -d db` chỉ Postgres; `docker compose up -d libretranslate` chỉ LibreTranslate.
@@ -113,10 +140,14 @@ Quy ước transcript (mỗi dòng một lượt nói):
 - `npm run build` – build production
 - `npm run db:studio` – xem database
 - `npm run db:import-reading -- <file.json> [--draft]` – nhập bài đọc song ngữ
+- `npm run db:make-admin -- <email>` – cấp quyền ADMIN
+- `npm run db:generate-content -- <questions|audio|readings|check|publish|exam|all>` – sinh dữ liệu ban đầu (xem mục trên)
 
 ## Trước khi công khai
 
 - Cấu hình Google OAuth thật (`AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET`) trước khi bật đăng nhập bằng Google.
+- Đặt `AUTH_TRUST_HOST="true"` khi chạy production ngoài Vercel.
+- Sao lưu `pg_dump` định kỳ (lệnh ở mục "Dữ liệu ban đầu"); audio và câu hỏi đều nằm trong Postgres.
 
 Đã xong: rate limit `/api/translate` (30 lượt/phút/IP, `src/lib/rate-limit.ts`), dọn `TranslationCache` quá 90 ngày theo xác suất 1% mỗi lần ghi cache mới, ghim image LibreTranslate ở `docker-compose.yml` (nâng version: xem comment cạnh dòng `image:`).
 

@@ -1,5 +1,7 @@
 # Kế hoạch 8: Dữ liệu ban đầu và chuẩn bị công khai
 
+> Trạng thái: ĐÃ HOÀN THÀNH 2026-09-08 trên nhánh plan-8-seed. Kết quả: 299 câu (P1 6, P2 40, P3 45, P4 36, P5 80, P6 32, P7 60) đã đăng, 71 mục audio, 20 bài đọc, đề "Đề thi thử 1" 200 câu. Đọc mẫu: 40 câu 0 lỗi; 5 bài đọc → xoá 1 (nhân vật có bản quyền), sửa 1 lỗi dịch.
+
 > **Dành cho agent thực thi:** BẮT BUỘC dùng sub-skill `superpowers:subagent-driven-development` (khuyến nghị) hoặc `superpowers:executing-plans` để làm theo từng task. Các bước dùng cú pháp checkbox (`- [ ]`) để đánh dấu.
 
 **Mục tiêu:** Web có đủ nội dung để dùng ngay: ít nhất 1 đề thi thử đầy đủ 200 câu, ~300 câu luyện tập trải đủ Part 1–7 (Part 1–4 có audio), 20 bài đọc song ngữ; và các việc kỹ thuật phải xong trước khi công khai (rate limit dịch, dọn cache dịch, ghim image LibreTranslate).
@@ -98,31 +100,31 @@ export function checkReading(r: { sentences: Array<{ en: string; vi: string }> }
 **Files:** Create `prisma/seed/fixtures/part1.json`.
 
 **Bước:**
-- [ ] Tìm 6 ảnh trên Wikimedia Commons bằng API (`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=...&gsrnamespace=6&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=1024&format=json`), chỉ nhận `LicenseShortName` là `Public domain`, `CC0`; chủ đề kiểu TOEIC: người làm việc ở văn phòng, họp, kho hàng, nhà hàng, đường phố, công trường/xe cộ. Ảnh phải có người hoặc hành động rõ. Dùng URL `thumburl` 1024px.
-- [ ] Tải từng ảnh về thư mục tạm (không commit) và **xem ảnh** để viết đúng: 4 câu `A:`–`D:` (một câu đúng mô tả ảnh, ba câu sai kiểu TOEIC: hành động sai, vật sai, vị trí sai), `choices` = 4 câu không có tiền tố, `answer`, `explanation` tiếng Việt kèm "Ảnh: Wikimedia Commons, <tên file>, public domain/CC0", `transcript` 4 dòng `A: …`, `imageUrl`, `section: "toeic.p1"`, `skillTags: ["listening.detail"]`.
-- [ ] Kiểm tra file qua `npx tsx -e` với `questionFileSchema`; nhập bằng `npm run db:import-questions -- prisma/seed/fixtures/part1.json --draft`; ghi số câu.
-- [ ] Commit `feat: sáu câu Part 1 mẫu với ảnh public domain`.
+- [x] Tìm 6 ảnh trên Wikimedia Commons bằng API (`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=...&gsrnamespace=6&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=1024&format=json`), chỉ nhận `LicenseShortName` là `Public domain`, `CC0`; chủ đề kiểu TOEIC: người làm việc ở văn phòng, họp, kho hàng, nhà hàng, đường phố, công trường/xe cộ. Ảnh phải có người hoặc hành động rõ. Dùng URL `thumburl` 1024px.
+- [x] Tải từng ảnh về thư mục tạm (không commit) và **xem ảnh** để viết đúng: 4 câu `A:`–`D:` (một câu đúng mô tả ảnh, ba câu sai kiểu TOEIC: hành động sai, vật sai, vị trí sai), `choices` = 4 câu không có tiền tố, `answer`, `explanation` tiếng Việt kèm "Ảnh: Wikimedia Commons, <tên file>, public domain/CC0", `transcript` 4 dòng `A: …`, `imageUrl`, `section: "toeic.p1"`, `skillTags: ["listening.detail"]`.
+- [x] Kiểm tra file qua `npx tsx -e` với `questionFileSchema`; nhập bằng `npm run db:import-questions -- prisma/seed/fixtures/part1.json --draft`; ghi số câu.
+- [x] Commit `feat: sáu câu Part 1 mẫu với ảnh public domain`.
 
 ---
 
 ### Task 4: Chạy sinh dữ liệu thật
 
 **Bước (thực thi, không có code mới):**
-- [ ] `npm run db:generate-content -- questions 2>&1 | tee .superpowers/seed-questions.log` (chạy nền; ~35 lô, 20–40 phút). Ghi lại lô thất bại.
-- [ ] `npm run db:generate-content -- audio` (~80 mục).
-- [ ] `npm run db:generate-content -- readings` (20 bài).
-- [ ] Chạy lại `questions`/`audio`/`readings` nếu còn thiếu. Ghi tổng kết số lượng theo section vào report.
+- [x] `npm run db:generate-content -- questions 2>&1 | tee .superpowers/seed-questions.log` (chạy nền; ~35 lô, 20–40 phút). Ghi lại lô thất bại.
+- [x] `npm run db:generate-content -- audio` (~80 mục).
+- [x] `npm run db:generate-content -- readings` (20 bài).
+- [x] Chạy lại `questions`/`audio`/`readings` nếu còn thiếu. Ghi tổng kết số lượng theo section vào report.
 
 ---
 
 ### Task 5: Kiểm tra chất lượng, đăng, ghép đề
 
 **Bước:**
-- [ ] `npm run db:generate-content -- check`; xem danh sách lỗi; `--delete-bad` nếu lỗi là do model (không phải do bug kiểm tra).
-- [ ] Lượt đọc mẫu: xuất 40 câu ngẫu nhiên (đủ Part) + 5 bài đọc ra file tạm (JSON đầy đủ đáp án/giải thích) bằng `npx tsx -e`; một agent review (model mạnh) đọc và liệt kê câu **sai đáp án** hoặc **không thể trả lời**, bài đọc dịch sai nghĩa; xoá các mục đó bằng Prisma (`question.delete`/`questionGroup.delete`, `reading.delete`). Ghi tỉ lệ lỗi vào report; nếu > 15 % thì dừng và báo người dùng thay vì đăng.
-- [ ] `npm run db:generate-content -- publish`.
-- [ ] `npm run db:generate-content -- exam "Đề thi thử 1"`; nếu thiếu Part nào thì quay lại Task 4 cho Part đó.
-- [ ] Kiểm tra bằng `npm run dev` + Edge headless: `/exam` hiện đề, `/reading` hiện ≥ 20 bài, `/api/audio/<id>` trả `audio/mpeg`.
+- [x] `npm run db:generate-content -- check`; xem danh sách lỗi; `--delete-bad` nếu lỗi là do model (không phải do bug kiểm tra).
+- [x] Lượt đọc mẫu: xuất 40 câu ngẫu nhiên (đủ Part) + 5 bài đọc ra file tạm (JSON đầy đủ đáp án/giải thích) bằng `npx tsx -e`; một agent review (model mạnh) đọc và liệt kê câu **sai đáp án** hoặc **không thể trả lời**, bài đọc dịch sai nghĩa; xoá các mục đó bằng Prisma (`question.delete`/`questionGroup.delete`, `reading.delete`). Ghi tỉ lệ lỗi vào report; nếu > 15 % thì dừng và báo người dùng thay vì đăng.
+- [x] `npm run db:generate-content -- publish`.
+- [x] `npm run db:generate-content -- exam "Đề thi thử 1"`; nếu thiếu Part nào thì quay lại Task 4 cho Part đó.
+- [x] Kiểm tra bằng `npm run dev` + Edge headless: `/exam` hiện đề, `/reading` hiện ≥ 20 bài, `/api/audio/<id>` trả `audio/mpeg`.
 
 ---
 
@@ -146,6 +148,6 @@ export function createRateLimiter(opts: { limit: number; windowMs: number; now?:
 
 ### Task 7: Tài liệu
 
-- [ ] README: mục "Dữ liệu ban đầu" (lệnh `db:generate-content` từng bước, Part 1 thủ công, sao lưu `pg_dump`/`psql`), cập nhật "Chạy lần đầu" (bước sinh dữ liệu thay cho nhập mẫu), "Trước khi công khai" chỉ còn Google OAuth + đặt `AUTH_TRUST_HOST` + `pg_dump` định kỳ, ghi rõ đợt dữ liệu đầu được đăng bằng script sau kiểm tra tự động và đọc mẫu.
-- [ ] CLAUDE.md: lệnh mới; đoạn "Dữ liệu ban đầu": `seed-plan.ts`/`content-check.ts` thuần, script chỉ gọi hàm nghiệp vụ; rate limit trong bộ nhớ; dọn cache theo xác suất.
-- [ ] Đánh dấu hoàn thành; commit `docs: dữ liệu ban đầu và chuẩn bị công khai`.
+- [x] README: mục "Dữ liệu ban đầu" (lệnh `db:generate-content` từng bước, Part 1 thủ công, sao lưu `pg_dump`/`psql`), cập nhật "Chạy lần đầu" (bước sinh dữ liệu thay cho nhập mẫu), "Trước khi công khai" chỉ còn Google OAuth + đặt `AUTH_TRUST_HOST` + `pg_dump` định kỳ, ghi rõ đợt dữ liệu đầu được đăng bằng script sau kiểm tra tự động và đọc mẫu.
+- [x] CLAUDE.md: lệnh mới; đoạn "Dữ liệu ban đầu": `seed-plan.ts`/`content-check.ts` thuần, script chỉ gọi hàm nghiệp vụ; rate limit trong bộ nhớ; dọn cache theo xác suất.
+- [x] Đánh dấu hoàn thành; commit `docs: dữ liệu ban đầu và chuẩn bị công khai`.
