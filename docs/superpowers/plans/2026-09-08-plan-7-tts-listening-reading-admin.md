@@ -1,5 +1,7 @@
 # Kế hoạch 7: TTS, sinh Part 2–4 bằng AI và quản trị bài đọc
 
+> Trạng thái: ĐÃ HOÀN THÀNH 2026-09-08 trên nhánh plan-7-tts.
+
 > **Dành cho agent thực thi:** BẮT BUỘC dùng sub-skill `superpowers:subagent-driven-development` (khuyến nghị) hoặc `superpowers:executing-plans` để làm theo từng task. Các bước dùng cú pháp checkbox (`- [ ]`) để đánh dấu.
 
 **Mục tiêu:** (1) Câu Listening có transcript được tạo audio bằng Edge TTS ngay trên trang quản trị, nên Part 1–4 đăng được và AI sinh được Part 2, 3, 4. (2) Audio dùng chung của nhóm Part 3/4 chỉ phát một lần cho cả nhóm, và trạng thái "đã phát" giữ khi người học chuyển câu (trả nợ README). (3) Admin quản lý bài đọc trên web: danh sách, đăng/gỡ, xoá, sửa từng câu, nhập JSON, sinh bằng AI.
@@ -106,10 +108,10 @@ export function createEdgeTts(opts: { createClient?: () => EdgeClient; timeoutMs
 **Test cần có:** `it("gom các chunk thành một mảng byte")`, `it("ném EMPTY khi text rỗng")`, `it("ném TTS_UNAVAILABLE khi client ném lỗi")`, `it("ném TTS_UNAVAILABLE khi quá thời gian")` (client giả treo, `timeoutMs: 10`), `it("luôn gọi close")`.
 
 **Bước:**
-- [ ] `npm i msedge-tts` (chỉ gói này). Kiểm tra `package.json` có `"msedge-tts": "^2.0.7"`.
-- [ ] Test đỏ → provider → xanh.
-- [ ] Thử thật một lần bằng script tạm (không commit): `npx tsx -e` gọi `getTtsProvider().synthesize({ text: "Where is the meeting?", voice: "en-US-JennyNeural" })`, in số byte (> 5000 là được). Ghi kết quả vào report. Nếu mạng chặn thì báo, không chặn task.
-- [ ] Commit: `feat: nhà cung cấp TTS bọc msedge-tts`.
+- [x] `npm i msedge-tts` (chỉ gói này). Kiểm tra `package.json` có `"msedge-tts": "^2.0.7"`.
+- [x] Test đỏ → provider → xanh.
+- [x] Thử thật một lần bằng script tạm (không commit): `npx tsx -e` gọi `getTtsProvider().synthesize({ text: "Where is the meeting?", voice: "en-US-JennyNeural" })`, in số byte (> 5000 là được). Ghi kết quả vào report. Nếu mạng chặn thì báo, không chặn task.
+- [x] Commit: `feat: nhà cung cấp TTS bọc msedge-tts`.
 
 ---
 
@@ -145,8 +147,8 @@ export async function saveAudio(db: Pick<PrismaClient, "audioFile">, bytes: Uint
 - `import-schema.ts` và `update-question-schema.ts`: `audioUrl: audioUrlSchema.optional()`; `imageUrl` cũng đổi sang `z.url({ protocol: /^https?$/ }).optional()` (chặn `javascript:` như đã làm với bài đọc).
 
 **Bước:**
-- [ ] Test đỏ → code → xanh. Migration: `npm run db:migrate -- --name audio_file`.
-- [ ] Commit: `feat: lưu audio trong database và phục vụ qua /api/audio`.
+- [x] Test đỏ → code → xanh. Migration: `npm run db:migrate -- --name audio_file`.
+- [x] Commit: `feat: lưu audio trong database và phục vụ qua /api/audio`.
 
 ---
 
@@ -201,7 +203,7 @@ export async function generateAudio(db: GenerateAudioDb, tts: TtsProvider, p: { 
 - `list-questions`: `it("missingAudio chỉ lấy câu Listening chưa có audio câu lẫn nhóm")`.
 
 **Bước:**
-- [ ] Test đỏ → code → xanh. Commit: `feat: tạo audio cho câu Listening từ transcript bằng TTS`.
+- [x] Test đỏ → code → xanh. Commit: `feat: tạo audio cho câu Listening từ transcript bằng TTS`.
 
 ---
 
@@ -238,10 +240,10 @@ export type PromptSection = "toeic.p2" | "toeic.p3" | "toeic.p4" | "toeic.p5" | 
 - `GenerateForm`: `PARTS` = section `toeic.p2`…`toeic.p7`; chú thích: "Part 2–4 sinh transcript, sau đó chọn câu ở trang Câu hỏi và bấm Tạo audio. Part 1 cần ảnh nên nhập file." Text mô tả ở trang generate cập nhật tương ứng.
 
 **Bước:**
-- [ ] `llm-json.ts` + test, refactor `generate-questions.ts` (test cũ vẫn xanh).
-- [ ] Ba prompt + test ví dụ.
-- [ ] Action + giao diện + test. Commit: `feat: sinh Part 2-4 bằng AI và tạo audio từ transcript trên trang quản trị`.
-- [ ] Thử thật (nếu có `LLM_API_KEY` trong `.env`): sinh 3 câu Part 2 rồi tạo audio; nghe thử file qua `/api/audio/<id>` bằng cách tải về (`curl -o`) và kiểm tra kích thước > 10 KB. Ghi vào report.
+- [x] `llm-json.ts` + test, refactor `generate-questions.ts` (test cũ vẫn xanh).
+- [x] Ba prompt + test ví dụ.
+- [x] Action + giao diện + test. Commit: `feat: sinh Part 2-4 bằng AI và tạo audio từ transcript trên trang quản trị`.
+- [x] Thử thật (nếu có `LLM_API_KEY` trong `.env`): sinh 3 câu Part 2 rồi tạo audio; nghe thử file qua `/api/audio/<id>` bằng cách tải về (`curl -o`) và kiểm tra kích thước > 10 KB. Ghi vào report.
 
 ---
 
@@ -266,7 +268,7 @@ type Props = { src: string; autoPlay?: boolean; played?: boolean; onPlayed?: (sr
 **Test cần có:** `AudioOnce`: `it("played=true thì nút phát bị vô hiệu và ghi Đã phát")`, `it("gọi onPlayed với src khi bấm phát")` (mock `HTMLMediaElement.prototype.play` trả Promise resolve). `QuestionCard`: `it("Part 2 chỉ hiện chữ cái khi chưa chấm")`, `it("Part 2 hiện nội dung sau khi chấm")`. `ExamRunner`: `it("chuyển câu trong cùng nhóm không tạo lại phần tử audio")` — render với 2 câu cùng `group.audioUrl`, lấy `container.querySelector("audio")`, bấm "Câu tiếp", phần tử `audio` vẫn là cùng một node (`toBe`).
 
 **Bước:**
-- [ ] Test đỏ → sửa → xanh. Commit: `fix: audio nhóm chỉ phát một lần khi chuyển câu, Part 2 chỉ hiện chữ cái`.
+- [x] Test đỏ → sửa → xanh. Commit: `fix: audio nhóm chỉ phát một lần khi chuyển câu, Part 2 chỉ hiện chữ cái`.
 
 ---
 
@@ -299,8 +301,8 @@ export async function updateReading(db: Pick<PrismaClient, "reading" | "readingS
 **Test cần có:** `updateReading`: `it("thay toàn bộ câu trong một transaction và cập nhật wordCount")`, `it("NOT_FOUND khi bài không tồn tại")`; `listReadingsAdmin`: lọc + phân trang; `ReadingEditForm`: `it("thêm và xoá câu")`, `it("đóng gói paragraphs thành JSON khi gửi")`; actions: FORBIDDEN.
 
 **Bước:**
-- [ ] `flatten.ts` + refactor `import-reading.ts` (test cũ xanh).
-- [ ] Nghiệp vụ + test. Giao diện + trang. Commit: `feat: quản trị bài đọc — danh sách, đăng/gỡ, xoá, sửa từng câu`.
+- [x] `flatten.ts` + refactor `import-reading.ts` (test cũ xanh).
+- [x] Nghiệp vụ + test. Giao diện + trang. Commit: `feat: quản trị bài đọc — danh sách, đăng/gỡ, xoá, sửa từng câu`.
 
 ---
 
@@ -333,8 +335,8 @@ export async function generateReading(db: Pick<PrismaClient, "generationJob" | "
 **Test cần có:** `generateReading`: `it("ép genre/level theo input")`, `it("FAILED khi JSON sai hai lần, không ghi bài")`, `it("ghi job type reading và resultCount là số câu")`; `buildReadingPrompt`: chứa nhãn thể loại/độ khó/độ dài và ví dụ qua schema.
 
 **Bước:**
-- [ ] Prompt + test; nghiệp vụ + test; action + giao diện. Commit: `feat: nhập và sinh bài đọc bằng AI trên trang quản trị`.
-- [ ] Thử thật nếu có `LLM_API_KEY`: sinh một bài `FAIRY_TALE`/`A2`/`short`, mở `/admin/readings/<id>` sửa thử, đăng, mở `/reading/<id>`. Ghi vào report.
+- [x] Prompt + test; nghiệp vụ + test; action + giao diện. Commit: `feat: nhập và sinh bài đọc bằng AI trên trang quản trị`.
+- [x] Thử thật nếu có `LLM_API_KEY`: sinh một bài `FAIRY_TALE`/`A2`/`short`, mở `/admin/readings/<id>` sửa thử, đăng, mở `/reading/<id>`. Ghi vào report.
 
 ---
 
@@ -343,9 +345,9 @@ export async function generateReading(db: Pick<PrismaClient, "generationJob" | "
 **Files:** `README.md`, `CLAUDE.md`, `.env.example` (không có biến TTS — ghi rõ), file kế hoạch này.
 
 **Bước:**
-- [ ] README: mục "Quản trị" thêm `/admin/readings*`, nút "Tạo audio", quy ước transcript (bảng nhỏ), Part 1 nhập file; xoá các mục nợ đã trả trong "Việc còn nợ" (audio nhóm Part 3/4, TTS), thêm nợ mới nếu có (audio trong Postgres — khi lớn thì chuyển sang storage ngoài).
-- [ ] CLAUDE.md: đoạn "TTS và audio" (provider theo khuôn, `AudioFile` + `/api/audio`, `audioUrlSchema` nhận URL tương đối, `splitTranscript` là nơi duy nhất biết quy ước transcript, `generateAudio` là bước riêng); đoạn "Quản trị bài đọc" (`flatten.ts` dùng chung, `updateReading` transaction, `askLlmJson` dùng chung cho câu hỏi và bài đọc); cập nhật lệnh/lộ trình.
-- [ ] Đánh dấu hoàn thành trong file kế hoạch. Commit: `docs: TTS, sinh Part 2-4 và quản trị bài đọc`.
+- [x] README: mục "Quản trị" thêm `/admin/readings*`, nút "Tạo audio", quy ước transcript (bảng nhỏ), Part 1 nhập file; xoá các mục nợ đã trả trong "Việc còn nợ" (audio nhóm Part 3/4, TTS), thêm nợ mới nếu có (audio trong Postgres — khi lớn thì chuyển sang storage ngoài).
+- [x] CLAUDE.md: đoạn "TTS và audio" (provider theo khuôn, `AudioFile` + `/api/audio`, `audioUrlSchema` nhận URL tương đối, `splitTranscript` là nơi duy nhất biết quy ước transcript, `generateAudio` là bước riêng); đoạn "Quản trị bài đọc" (`flatten.ts` dùng chung, `updateReading` transaction, `askLlmJson` dùng chung cho câu hỏi và bài đọc); cập nhật lệnh/lộ trình.
+- [x] Đánh dấu hoàn thành trong file kế hoạch. Commit: `docs: TTS, sinh Part 2-4 và quản trị bài đọc`.
 
 ---
 

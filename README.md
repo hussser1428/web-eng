@@ -79,12 +79,29 @@ npm run db:make-admin -- email@example.com
 Role được sao vào JWT lúc đăng nhập, nên nếu đang có phiên thì phải **đăng xuất rồi đăng nhập lại** mới thấy `/admin`. Sau đó vào `/admin`:
 
 - `/admin` — tổng quan số câu đã đăng/nháp/cần theo từng Part.
-- `/admin/questions` — lọc, sửa, đăng/gỡ hàng loạt (không đăng được câu Listening thiếu audio).
+- `/admin/questions` — lọc (kể cả lọc "Thiếu audio"), sửa, đăng/gỡ hàng loạt (không đăng được câu Listening thiếu audio); tích câu rồi bấm nút "Tạo audio" để tổng hợp audio từ transcript.
 - `/admin/import` — dán hoặc chọn file JSON, mặc định vào nháp, có thể tạo đề luôn.
 - `/admin/exams` — ghép đề tự động từ câu đã đăng (đủ số câu mỗi Part mới tạo), đăng/gỡ đề.
-- `/admin/generate` — sinh câu hỏi Part 5/6/7 bằng LLM, tối đa 10 câu mỗi lô, kết quả vào nháp chờ duyệt; có lịch sử job và nút chạy lại.
+- `/admin/generate` — sinh câu hỏi Part 2–7 bằng LLM, tối đa 10 câu mỗi lô, kết quả vào nháp chờ duyệt; có lịch sử job và nút chạy lại. Part 2–4 chỉ sinh transcript (tạo audio là bước riêng ở `/admin/questions`); Part 1 cần ảnh nên chỉ nhập được qua file JSON.
+- `/admin/readings` — danh sách bài đọc, lọc theo trạng thái/thể loại/nguồn, đăng/gỡ, xoá.
+- `/admin/readings/[id]` — sửa từng câu của một bài (lưu là ghi đè toàn bộ câu của bài).
+- `/admin/readings/import` — dán hoặc chọn file JSON bài đọc, mặc định vào nháp.
+- `/admin/readings/generate` — sinh bài đọc song ngữ bằng LLM (Anh và Việt cùng lúc, theo cặp câu), tối đa 10 câu mỗi lô, vào nháp chờ duyệt; có lịch sử job và nút chạy lại.
 
-Sinh câu hỏi bằng AI cần các biến môi trường `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` (xem `.env.example`, mặc định gọi Groq). Thiếu `LLM_API_KEY` thì trang `/admin/generate` báo "Chưa cấu hình LLM", các trang quản trị khác vẫn dùng bình thường. Part 1–4 chưa sinh được bằng AI (chưa có TTS) — xem "Việc còn nợ".
+Sinh nội dung bằng AI cần các biến môi trường `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` (xem `.env.example`, mặc định gọi Groq). Thiếu `LLM_API_KEY` thì trang `/admin/generate` và `/admin/readings/generate` báo "Chưa cấu hình LLM", các trang quản trị khác vẫn dùng bình thường.
+
+### Audio và TTS
+
+Audio Listening (Part 1–4) tổng hợp bằng Edge TTS (gói `msedge-tts`, dùng giọng đọc miễn phí của Microsoft Edge — không cần khoá hay biến môi trường). Ở `/admin/questions`, admin sửa transcript nếu cần rồi tích câu và bấm "Tạo audio" (tối đa 10 mục mỗi lần bấm); câu thuộc nhóm (Part 3/4) chỉ tổng hợp một file audio dùng chung cho cả nhóm. File audio lưu trong Postgres (bảng `AudioFile`) và phục vụ qua `GET /api/audio/<id>`.
+
+Quy ước transcript (mỗi dòng một lượt nói):
+
+| Part | Cú pháp dòng | Giọng đọc |
+| --- | --- | --- |
+| 1 | `A:` đến `D:` | một giọng, đọc thành "A. …" |
+| 2 | `Q:` rồi `A:`/`B:`/`C:` | `Q:` một giọng; `A:`/`B:`/`C:` giọng khác, đọc thành "A. …" |
+| 3 | mỗi dòng `M:`/`Man:` hoặc `W:`/`Woman:` | nam/nữ xen kẽ theo tiền tố |
+| 4 | không tiền tố | một giọng dẫn |
 
 ## Docker
 
@@ -106,9 +123,10 @@ Sinh câu hỏi bằng AI cần các biến môi trường `LLM_BASE_URL`, `LLM_
 
 ## Việc còn nợ (đã biết, chưa chặn)
 
-- **Trước khi nhập nội dung phần nghe (Part 1–4):** `QuestionCard` truyền `key` theo từng câu nên `AudioOnce` bị reset mỗi câu — audio dùng chung cho cả nhóm (Part 3/4) sẽ phát lại ở từng câu trong nhóm. Cần tách audio của nhóm ra khỏi vòng đời từng câu (`src/components/questions/QuestionCard.tsx`, `src/components/exam/ExamRunner.tsx`).
 - **Khi có tải thật:** `saveExamAnswers` gọi `updateMany` cho từng câu (200 lượt truy vấn mỗi 30 giây với một đề đầy đủ). Nên chỉ gửi những câu vừa đổi và gộp các lệnh cập nhật khi chấm bài (`src/features/attempts/save-exam-answers.ts`, `submit.ts`).
-- **Chưa có TTS:** Part 1–4 cần audio nên chỉ nhập được qua file JSON/thủ công (đường dẫn `audioUrl` do admin tự lưu sẵn); trang `/admin/generate` mới sinh được Part 5/6/7. Việc thêm TTS (Edge TTS) để kế hoạch sau, đi cùng việc trả nợ audio nhóm Part 3/4 ở trên.
+- **Audio lưu trong Postgres** (bảng `AudioFile`): khi vượt vài trăm MB nên chuyển `saveAudio` sang lưu trữ ngoài (S3) — chỉ cần đổi hàm đó và route `/api/audio/[id]`.
+- **Edge TTS (`msedge-tts`) là API không chính thức của Microsoft Edge:** Microsoft đổi giao thức thì TTS lỗi `TTS_UNAVAILABLE` hàng loạt — cần nâng cấp gói.
+- Ghép audio nhiều lượt nói bằng cách nối thẳng các đoạn MP3, chưa chèn khoảng lặng giữa các lượt nói.
 - `importQuestions()` và `buildExam()` chưa bọc trong transaction — nhập/ghép đề nửa chừng lỗi có thể để lại dữ liệu dở dang.
 - Chưa có cách thu hồi quyền admin; role nằm trong JWT nên mọi thay đổi role chỉ có hiệu lực sau khi người dùng đăng nhập lại.
 - Nhà cung cấp LLM chưa thử lại khi gặp HTTP 503 (Gemini quá tải tạm thời); admin phải bấm "Chạy lại". Với key Gemini, dùng model `gemini-3.6-flash` (dòng 2.5 đã ngừng cho key mới).
