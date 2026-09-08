@@ -21,7 +21,8 @@ export function QuestionCard({ q, index, selected, onSelect, disabled, reveal, a
   const locked = disabled || !!reveal;
   const audio = q.audioUrl ?? q.group?.audioUrl ?? null;
   const image = q.imageUrl ?? q.group?.imageUrl ?? null;
-  const hideChoiceText = q.section === "toeic.p2" && !reveal;
+  // Part 1 và Part 2 thi thật chỉ nghe (Part 1 kèm ảnh), đề in mỗi chữ cái — chỉ hiện nội dung sau khi chấm.
+  const hideChoiceText = (q.section === "toeic.p1" || q.section === "toeic.p2") && !reveal;
 
   const stateOf = (i: number): "correct" | "wrong" | "selected" | "idle" => {
     if (reveal) {

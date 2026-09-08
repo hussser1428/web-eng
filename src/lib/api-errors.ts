@@ -10,6 +10,7 @@ const STATUS: Record<string, number> = {
   NOT_SUBMITTED: 409,
   INVALID: 400,
   WRONG_TYPE: 400,
+  RATE_LIMITED: 429,
 };
 
 /** Đổi Error("MÃ") của lớp nghiệp vụ thành response JSON. Trả null nếu không phải mã đã biết. */

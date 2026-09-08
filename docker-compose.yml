@@ -10,7 +10,8 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
   libretranslate:
-    image: libretranslate/libretranslate:latest
+    # nâng cấp: tra tag mới nhất tại https://hub.docker.com/r/libretranslate/libretranslate/tags rồi sửa version ở đây
+    image: libretranslate/libretranslate:v1.9.6
     environment:
       LT_LOAD_ONLY: en,vi
     ports:

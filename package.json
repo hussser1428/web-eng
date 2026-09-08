@@ -17,7 +17,8 @@
     "db:import-dict": "tsx prisma/seed/import-stardict.ts",
     "db:import-questions": "tsx prisma/seed/import-questions.ts",
     "db:import-reading": "tsx prisma/seed/import-reading.ts",
-    "db:make-admin": "tsx prisma/seed/make-admin.ts"
+    "db:make-admin": "tsx prisma/seed/make-admin.ts",
+    "db:generate-content": "tsx prisma/seed/generate-content.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",

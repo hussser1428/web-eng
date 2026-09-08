@@ -16,10 +16,15 @@ vi.mock("@/features/translate/translate", async (orig) => {
   };
 });
 
+import { auth } from "@/lib/auth";
 import { POST } from "./route";
 
-function req(body: unknown) {
-  return new Request("http://x/api/translate", { method: "POST", body: JSON.stringify(body), headers: { "Content-Type": "application/json" } });
+function req(body: unknown, ip = "1.2.3.4") {
+  return new Request("http://x/api/translate", {
+    method: "POST",
+    body: JSON.stringify(body),
+    headers: { "Content-Type": "application/json", "x-forwarded-for": ip },
+  });
 }
 
 describe("POST /api/translate", () => {
@@ -36,5 +41,17 @@ describe("POST /api/translate", () => {
   });
   it("400 khi body sai", async () => {
     expect((await POST(req({ nope: 1 }))).status).toBe(400);
+  });
+
+  it("429 khi khách vượt quá 30 lượt/phút từ cùng một IP", async () => {
+    vi.mocked(auth).mockResolvedValue(null as never); // khách: khoá theo IP
+    const ip = "9.9.9.9"; // IP riêng vì limiter là singleton cấp module, dùng chung giữa các test
+    for (let i = 0; i < 30; i++) {
+      expect((await POST(req({ text: "hello world" }, ip))).status).toBe(200);
+    }
+    expect((await POST(req({ text: "hello world" }, ip))).status).toBe(429);
+    // Cùng IP nhưng đã đăng nhập thì khoá theo tài khoản, không bị vạ lây
+    vi.mocked(auth).mockResolvedValue({ user: { id: "u-khac", role: "USER" } } as never);
+    expect((await POST(req({ text: "hello world" }, ip))).status).toBe(200);
   });
 });
