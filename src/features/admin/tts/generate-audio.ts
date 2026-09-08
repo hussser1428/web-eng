@@ -54,8 +54,9 @@ async function synthesizeTranscript(
 }
 
 /**
- * Tạo audio TOEIC Listening từ transcript cho các câu đã chọn (tối đa `MAX_TTS_ITEMS`).
- * Câu thuộc nhóm (Part 3/4) tổng hợp chung một file cho cả nhóm, dedupe theo `groupId` trong cùng lô.
+ * Tạo audio TOEIC Listening từ transcript cho các câu đã chọn (tối đa `MAX_TTS_ITEMS` **mục**).
+ * Một mục là một nhóm (Part 3/4, tổng hợp chung một file) hoặc một câu lẻ, nên chọn cả 15 câu
+ * của 5 nhóm vẫn chỉ là 5 mục — trần đếm theo số lượt gọi TTS chứ không theo số câu tích chọn.
  */
 export async function generateAudio(
   db: GenerateAudioDb,
@@ -64,16 +65,24 @@ export async function generateAudio(
   deps: { rand?: () => number } = {},
 ): Promise<GenerateAudioResult> {
   const rand = deps.rand ?? Math.random;
-  const overflow = Math.max(0, p.ids.length - MAX_TTS_ITEMS);
-  const ids = p.ids.slice(0, MAX_TTS_ITEMS);
-  const result: GenerateAudioResult = { done: 0, skipped: 0, failed: 0, overflow, errors: [] };
+  const ids = [...new Set(p.ids)];
+  const result: GenerateAudioResult = { done: 0, skipped: 0, failed: 0, overflow: 0, errors: [] };
   if (ids.length === 0) return result;
 
+  // Phải nạp hết mới biết câu nào cùng nhóm, nên cắt theo trần sau khi đã gom câu thành mục.
   const rows = await db.question.findMany({ where: { id: { in: ids } }, include: { group: true } });
   const byId = new Map(rows.map((r) => [r.id, r]));
-  const seenGroups = new Set<string>();
 
+  // Mỗi mục lấy id đầu tiên gặp làm đại diện; id không có trong database vẫn là một mục (đếm vào "bỏ qua").
+  const daiDien = new Map<string, string>();
   for (const id of ids) {
+    const key = byId.get(id)?.groupId ?? id;
+    if (!daiDien.has(key)) daiDien.set(key, id);
+  }
+  const muc = [...daiDien.values()];
+  result.overflow = Math.max(0, muc.length - MAX_TTS_ITEMS);
+
+  for (const id of muc.slice(0, MAX_TTS_ITEMS)) {
     const q = byId.get(id);
     if (!q) {
       result.skipped++;
@@ -81,8 +90,6 @@ export async function generateAudio(
     }
 
     if (q.groupId) {
-      if (seenGroups.has(q.groupId)) continue; // đã xử lý (hoặc thử xử lý) nhóm này trong lô — không đếm lại
-      seenGroups.add(q.groupId);
       const group = q.group;
       if (!group || group.audioUrl || !group.transcript) {
         result.skipped++;

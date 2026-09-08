@@ -125,15 +125,47 @@ describe("generateAudio", () => {
   });
 
   it("quá 10 mục thì overflow", async () => {
-    const ids = Array.from({ length: 12 }, (_, i) => `q${i + 1}`);
-    const rows = ids.slice(0, MAX_TTS_ITEMS).map((id) => question({ id, transcript: null, audioUrl: "/a.mp3" }));
+    const ids = Array.from({ length: 11 }, (_, i) => `q${i + 1}`); // 11 câu lẻ = 11 mục
+    const rows = ids.map((id) => question({ id, transcript: null, audioUrl: "/a.mp3" }));
     const { db } = fakeDb(rows);
     const tts = fakeTts();
 
     const r = await generateAudio(db, tts, { ids });
 
-    expect(r.overflow).toBe(2);
+    expect(r.overflow).toBe(1);
     expect(r.skipped).toBe(MAX_TTS_ITEMS);
     expect(tts.synthesize).not.toHaveBeenCalled();
+  });
+
+  it("chọn 15 câu của 5 nhóm là 5 mục, không overflow", async () => {
+    const nhom = Array.from({ length: 5 }, (_, i) => ({
+      id: `g${i + 1}`,
+      transcript: "M: Hello\nW: Hi",
+      audioUrl: null,
+    }));
+    const rows = nhom.flatMap((group, i) =>
+      Array.from({ length: 3 }, (_, j) =>
+        question({ id: `q${i * 3 + j + 1}`, section: "toeic.p3", groupId: group.id, group, transcript: null }),
+      ),
+    );
+    const { db, groupUpdate } = fakeDb(rows);
+    const tts = fakeTts();
+
+    const r = await generateAudio(db, tts, { ids: rows.map((q) => q.id) });
+
+    expect(r).toEqual({ done: 5, skipped: 0, failed: 0, overflow: 0, errors: [] });
+    expect(groupUpdate).toHaveBeenCalledTimes(5);
+  });
+
+  it("id trùng trong cùng lô chỉ xử lý một lần", async () => {
+    const rows = [question({ id: "q1", section: "toeic.p2", transcript: "Q: Hi there?" })];
+    const { db, questionUpdate } = fakeDb(rows);
+    const tts = fakeTts();
+
+    const r = await generateAudio(db, tts, { ids: ["q1", "q1", "q1"] });
+
+    expect(r).toEqual({ done: 1, skipped: 0, failed: 0, overflow: 0, errors: [] });
+    expect(questionUpdate).toHaveBeenCalledTimes(1);
+    expect(tts.synthesize).toHaveBeenCalledTimes(1);
   });
 });

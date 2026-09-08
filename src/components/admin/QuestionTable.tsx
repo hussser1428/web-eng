@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Volume2, VolumeX } from "lucide-react";
 import { generateAudioAction, setStatusAction } from "@/app/admin/actions";
@@ -19,6 +19,10 @@ function dapAn(r: QuestionRow) {
 export function QuestionTable({ items }: { items: QuestionRow[] }) {
   const [thongBao, action, dangChay] = useActionState(setStatusAction, null);
   const [thongBaoAudio, audioAction, dangTaoAudio] = useActionState(generateAudioAction, null);
+  // Hai action giữ thông báo riêng; nhớ nút vừa bấm để chỉ hiện dòng mới nhất, tránh đọc nhầm kết quả cũ.
+  const [nutCuoi, setNutCuoi] = useState<"trangThai" | "audio">("trangThai");
+  const dangGui = dangChay || dangTaoAudio;
+  const dongHienThi = nutCuoi === "audio" ? thongBaoAudio : thongBao;
 
   if (items.length === 0) return <p className="card p-6 text-muted">Không có câu hỏi nào khớp bộ lọc.</p>;
 
@@ -28,7 +32,8 @@ export function QuestionTable({ items }: { items: QuestionRow[] }) {
         <button
           name="status"
           value="PUBLISHED"
-          disabled={dangChay}
+          onClick={() => setNutCuoi("trangThai")}
+          disabled={dangGui}
           className="btn-primary rounded-lg px-5 py-2 text-sm font-semibold disabled:opacity-50"
         >
           Đăng
@@ -36,21 +41,22 @@ export function QuestionTable({ items }: { items: QuestionRow[] }) {
         <button
           name="status"
           value="DRAFT"
-          disabled={dangChay}
+          onClick={() => setNutCuoi("trangThai")}
+          disabled={dangGui}
           className="rounded-lg border border-line px-5 py-2 text-sm font-medium hover:bg-surface-2 disabled:opacity-50"
         >
           Gỡ
         </button>
         <button
           formAction={audioAction}
-          disabled={dangTaoAudio}
+          onClick={() => setNutCuoi("audio")}
+          disabled={dangGui}
           className="flex items-center gap-1.5 rounded-lg border border-line px-5 py-2 text-sm font-medium hover:bg-surface-2 disabled:opacity-50"
         >
           <Volume2 size={18} aria-hidden="true" />
           Tạo audio
         </button>
-        {thongBao && <p className="text-sm text-muted">{thongBao}</p>}
-        {thongBaoAudio && <p className="text-sm text-muted">{thongBaoAudio}</p>}
+        {dongHienThi && <p className="text-sm text-muted">{dongHienThi}</p>}
       </div>
 
       <div className="card overflow-x-auto p-0">

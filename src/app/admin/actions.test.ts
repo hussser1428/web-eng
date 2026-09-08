@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { Prisma } from "@prisma/client";
 
 const authMock = vi.fn();
 vi.mock("@/lib/auth", () => ({ auth: () => authMock() }));
@@ -659,7 +660,8 @@ describe("generateAudioAction", () => {
     const r = await generateAudioAction(null, formAudio(ids));
 
     expect(r).toContain("Chỉ xử lý 10 mục đầu.");
-    expect(findMany.mock.calls[0][0].where.id.in).toHaveLength(10);
+    // Nạp hết id rồi mới cắt: phải biết câu nào cùng nhóm mới đếm được số mục.
+    expect(findMany.mock.calls[0][0].where.id.in).toHaveLength(12);
   });
 });
 
@@ -718,8 +720,8 @@ describe("hành động bài đọc", () => {
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 
-  it("lưu xong thì trả null và làm mới cả trang quản trị lẫn trang học", async () => {
-    await expect(updateReadingAction(null, formBaiDoc())).resolves.toBeNull();
+  it("lưu xong thì báo Đã lưu. và làm mới cả trang quản trị lẫn trang học", async () => {
+    await expect(updateReadingAction(null, formBaiDoc())).resolves.toBe("Đã lưu.");
 
     expect(sentenceCreateMany).toHaveBeenCalledWith({
       data: [{ readingId: "r1", order: 1, paragraphIndex: 0, en: "A fox saw grapes.", vi: "Cáo thấy nho." }],
@@ -768,6 +770,16 @@ describe("hành động bài đọc", () => {
     fd.set("status", "XOA_HET");
     await setReadingStatusAction(fd);
     expect(readingUpdate).not.toHaveBeenCalled();
+  });
+
+  it("bài đã bị xoá thì đăng/gỡ im lặng, không ném lỗi ra giao diện", async () => {
+    readingUpdate.mockRejectedValue(new Prisma.PrismaClientKnownRequestError("no", { code: "P2025", clientVersion: "6" }));
+    const fd = new FormData();
+    fd.set("id", "r1");
+    fd.set("status", "PUBLISHED");
+
+    await expect(setReadingStatusAction(fd)).resolves.toBeUndefined();
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/readings");
   });
 
   it("xoá bài rồi làm mới danh sách", async () => {

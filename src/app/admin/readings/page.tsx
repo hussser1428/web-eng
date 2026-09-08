@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/require-admin";
 import { listReadingsAdmin } from "@/features/reading/admin/list-readings-admin";
 import { ReadingAdminFilters } from "@/components/admin/ReadingAdminFilters";
 import { ReadingTable } from "@/components/admin/ReadingTable";
+import { GENRES } from "@/features/reading/labels";
 import type { ContentStatus, QuestionSource, ReadingGenre } from "@prisma/client";
 
 export const metadata: Metadata = { title: "Bài đọc" };
@@ -13,7 +14,6 @@ export const metadata: Metadata = { title: "Bài đọc" };
 type Search = { status?: string; genre?: string; source?: string; q?: string; page?: string };
 
 const TRANG_THAI = ["DRAFT", "PUBLISHED"];
-const THE_LOAI = ["HUMOR", "FAIRY_TALE", "ANIME", "NEWS"];
 const NGUON = ["AI", "IMPORT", "MANUAL"];
 
 /** Chỉ nhận giá trị nằm trong danh sách hợp lệ, tránh đẩy chuỗi lạ từ URL xuống Prisma. */
@@ -34,7 +34,7 @@ export default async function AdminReadingsPage({ searchParams }: { searchParams
   const sp = await searchParams;
   const trang = await listReadingsAdmin(prisma, {
     status: hopLe<ContentStatus>(sp.status, TRANG_THAI),
-    genre: hopLe<ReadingGenre>(sp.genre, THE_LOAI),
+    genre: hopLe<ReadingGenre>(sp.genre, GENRES),
     source: hopLe<QuestionSource>(sp.source, NGUON),
     q: sp.q || undefined,
     page: Number(sp.page) || 1,

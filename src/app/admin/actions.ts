@@ -239,6 +239,13 @@ export async function retryJobAction(formData: FormData): Promise<void> {
   await chaySinh(admin.id, parsed.data);
 }
 
+/** Bỏ phần "<id>: " ở đầu một dòng lỗi của `generateAudio`, giữ nguyên dòng nếu không có dấu phân cách. */
+function maLoi(dong: string | undefined): string {
+  if (!dong) return "TTS_UNAVAILABLE";
+  const i = dong.indexOf(": ");
+  return i < 0 ? dong : dong.slice(i + 2);
+}
+
 /** Tạo audio từ transcript cho các câu Listening đã tích chọn. Trả một dòng tổng kết cho `useActionState`. */
 export async function generateAudioAction(_prev: string | null, formData: FormData): Promise<string | null> {
   await requireAdmin("action");
@@ -250,7 +257,8 @@ export async function generateAudioAction(_prev: string | null, formData: FormDa
   revalidatePath("/admin/questions");
 
   // Chỉ nêu mã lỗi đầu tiên: cả lô thường hỏng vì cùng một lý do, không cần liệt kê hết.
-  const loi = r.failed > 0 ? ` (${r.errors[0]?.split(": ").at(-1) ?? "TTS_UNAVAILABLE"})` : "";
+  // Cắt sau dấu ": " đầu tiên (bỏ id câu), không dùng `split` vì mã lỗi tự nó có thể chứa ": ".
+  const loi = r.failed > 0 ? ` (${maLoi(r.errors[0])})` : "";
   const thua = r.overflow > 0 ? ` Chỉ xử lý ${MAX_TTS_ITEMS} mục đầu.` : "";
   return `Đã tạo audio cho ${r.done} mục, bỏ qua ${r.skipped} (đã có audio hoặc không có transcript), lỗi ${r.failed}${loi}.${thua}`;
 }
@@ -273,7 +281,11 @@ export async function setReadingStatusAction(formData: FormData): Promise<void> 
   const status = formData.get("status");
   if (!id || (status !== "PUBLISHED" && status !== "DRAFT")) return;
 
-  await setReadingStatus(prisma, { id, status });
+  try {
+    await setReadingStatus(prisma, { id, status });
+  } catch (e) {
+    if ((e as Error).message !== "NOT_FOUND") throw e;
+  }
   lamMoiBaiDoc(id);
 }
 
@@ -292,7 +304,7 @@ export async function deleteReadingAction(formData: FormData): Promise<void> {
   lamMoiBaiDoc(id);
 }
 
-/** Lưu một bài đọc từ form sửa. Trả `null` khi xong, hoặc thông báo lỗi tiếng Việt. */
+/** Lưu một bài đọc từ form sửa. Trả "Đã lưu." khi xong, hoặc thông báo lỗi tiếng Việt. */
 export async function updateReadingAction(_prev: string | null, formData: FormData): Promise<string | null> {
   await requireAdmin("action");
 
@@ -322,11 +334,13 @@ export async function updateReadingAction(_prev: string | null, formData: FormDa
     await updateReading(prisma, id, parsed.data);
   } catch (e) {
     if ((e as Error).message === "NOT_FOUND") return "Không tìm thấy bài đọc.";
+    // Database hỏng thì thông báo chung không nói được gì; log lại để còn lần ra nguyên nhân.
+    console.error("updateReadingAction", e);
     return "Không lưu được bài đọc.";
   }
 
   lamMoiBaiDoc(id);
-  return null;
+  return "Đã lưu.";
 }
 
 export type ImportReadingState =

@@ -15,7 +15,7 @@ const nutPhu = "rounded-lg border border-line px-3 py-1.5 text-sm font-medium ho
  * Nhờ vậy Server Action chỉ phải parse một trường thay vì ghép lại từ hàng trăm tên ô rời rạc.
  */
 export function ReadingEditForm({ reading }: { reading: ReadingAdminDetail }) {
-  const [loi, action, dangGui] = useActionState(updateReadingAction, null);
+  const [thongBao, action, dangGui] = useActionState(updateReadingAction, null);
   const [doan, setDoan] = useState<Cau[][]>(() => reading.paragraphs.map((p) => p.map((s) => ({ en: s.en, vi: s.vi }))));
 
   /** Mọi thao tác thêm/xoá đều đi qua đây để React thấy mảng mới. */
@@ -152,7 +152,7 @@ export function ReadingEditForm({ reading }: { reading: ReadingAdminDetail }) {
         Thêm đoạn
       </button>
 
-      {loi && <p className="text-sm text-danger">{loi}</p>}
+      {thongBao && <p className={`text-sm ${thongBao === "Đã lưu." ? "text-info" : "text-danger"}`}>{thongBao}</p>}
 
       <button disabled={dangGui} className={`${primaryButtonClass} sm:w-40`}>
         Lưu

@@ -10,6 +10,9 @@ import type { ContentStatus, QuestionSource } from "@prisma/client";
 
 export const metadata: Metadata = { title: "Câu hỏi" };
 
+// Nút "Tạo audio" tổng hợp tuần tự nhiều lượt nói, vượt trần mặc định 10 giây của Vercel.
+export const maxDuration = 60;
+
 type Search = { section?: string; status?: string; source?: string; q?: string; missingAudio?: string; page?: string };
 
 const TRANG_THAI = ["DRAFT", "PUBLISHED"];

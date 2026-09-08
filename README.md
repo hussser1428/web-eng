@@ -86,7 +86,7 @@ Role được sao vào JWT lúc đăng nhập, nên nếu đang có phiên thì 
 - `/admin/readings` — danh sách bài đọc, lọc theo trạng thái/thể loại/nguồn, đăng/gỡ, xoá.
 - `/admin/readings/[id]` — sửa từng câu của một bài (lưu là ghi đè toàn bộ câu của bài).
 - `/admin/readings/import` — dán hoặc chọn file JSON bài đọc, mặc định vào nháp.
-- `/admin/readings/generate` — sinh bài đọc song ngữ bằng LLM (Anh và Việt cùng lúc, theo cặp câu), tối đa 10 câu mỗi lô, vào nháp chờ duyệt; có lịch sử job và nút chạy lại.
+- `/admin/readings/generate` — sinh bài đọc song ngữ bằng LLM (Anh và Việt cùng lúc, theo cặp câu): chọn độ dài ngắn/vừa/dài (~150/300/500 từ), thể loại, độ khó và chủ đề tuỳ chọn; kết quả vào nháp chờ duyệt, có lịch sử job và nút chạy lại.
 
 Sinh nội dung bằng AI cần các biến môi trường `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` (xem `.env.example`, mặc định gọi Groq). Thiếu `LLM_API_KEY` thì trang `/admin/generate` và `/admin/readings/generate` báo "Chưa cấu hình LLM", các trang quản trị khác vẫn dùng bình thường.
 
@@ -131,6 +131,7 @@ Quy ước transcript (mỗi dòng một lượt nói):
 - Chưa có cách thu hồi quyền admin; role nằm trong JWT nên mọi thay đổi role chỉ có hiệu lực sau khi người dùng đăng nhập lại.
 - Nhà cung cấp LLM chưa thử lại khi gặp HTTP 503 (Gemini quá tải tạm thời); admin phải bấm "Chạy lại". Với key Gemini, dùng model `gemini-3.6-flash` (dòng 2.5 đã ngừng cho key mới).
 - Action sinh câu hỏi (`/admin/generate`) chưa có rate limit — admin bấm liên tục có thể tốn hạn mức LLM miễn phí nhanh hơn cần thiết.
+- Nút "Tạo audio" ở `/admin/questions` cũng chạy đồng bộ (`maxDuration = 60`) và tổng hợp tuần tự từng lượt nói, nên 60 giây chỉ đủ cho vài nhóm Part 3/4 mỗi lần bấm. Sau này nên tổng hợp các lượt nói song song có giới hạn, hoặc đẩy sang hàng đợi chạy nền.
 - Sinh nội dung chạy đồng bộ trong một request (`maxDuration = 60`). Bài đọc dài (~500 từ) có thể vượt trần: job bị cắt giữa chừng nằm mãi ở trạng thái `RUNNING` và bảng lịch sử không cho "Chạy lại" (chỉ job `FAILED` mới có nút). Cần đánh dấu job quá hạn thành `FAILED` hoặc chuyển sang chạy nền.
 
 ## Tài liệu

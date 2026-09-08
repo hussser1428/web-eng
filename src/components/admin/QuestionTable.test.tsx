@@ -61,7 +61,7 @@ describe("QuestionTable", () => {
     expect(setStatusAction).not.toHaveBeenCalled();
   });
 
-  it("hiện thông báo của cả hai action", async () => {
+  it("chỉ hiện thông báo của nút vừa bấm", async () => {
     vi.mocked(setStatusAction).mockResolvedValueOnce("Đã đăng 1 câu.");
     vi.mocked(generateAudioAction).mockResolvedValueOnce("Đã tạo audio cho 1 mục.");
     render(<QuestionTable items={[base]} />);
@@ -71,7 +71,7 @@ describe("QuestionTable", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Tạo audio" }));
     expect(await screen.findByText("Đã tạo audio cho 1 mục.")).toBeInTheDocument();
-    expect(screen.getByText("Đã đăng 1 câu.")).toBeInTheDocument();
+    expect(screen.queryByText("Đã đăng 1 câu.")).not.toBeInTheDocument();
   });
 
   it("nhãn trạng thái đổi màu theo nháp và đã đăng", () => {

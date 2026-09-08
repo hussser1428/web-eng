@@ -26,6 +26,7 @@ describe("GET /api/audio/[id]", () => {
     expect(res.headers.get("Content-Type")).toBe("audio/mpeg");
     expect(res.headers.get("Content-Length")).toBe("3");
     expect(res.headers.get("Cache-Control")).toBe("public, max-age=31536000, immutable");
+    expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
     expect(new Uint8Array(await res.arrayBuffer())).toEqual(bytes);
   });
 });

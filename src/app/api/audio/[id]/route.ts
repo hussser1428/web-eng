@@ -10,6 +10,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     headers: {
       "Content-Type": file.mime,
       "Cache-Control": "public, max-age=31536000, immutable",
+      // Bytes do admin nạp vào: cấm trình duyệt tự đoán lại kiểu và chạy nó như HTML.
+      "X-Content-Type-Options": "nosniff",
       "Content-Length": String(file.bytes.length),
     },
   });

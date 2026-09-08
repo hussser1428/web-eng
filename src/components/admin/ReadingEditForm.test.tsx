@@ -4,7 +4,7 @@ import { ReadingEditForm } from "./ReadingEditForm";
 import { updateReadingAction } from "@/app/admin/actions";
 import type { ReadingAdminDetail } from "@/features/reading/admin/get-reading-admin";
 
-vi.mock("@/app/admin/actions", () => ({ updateReadingAction: vi.fn(async () => null) }));
+vi.mock("@/app/admin/actions", () => ({ updateReadingAction: vi.fn(async () => "Đã lưu.") }));
 
 const bai: ReadingAdminDetail = {
   id: "r1",
@@ -33,7 +33,7 @@ function guiForm() {
 describe("ReadingEditForm", () => {
   beforeEach(() => {
     vi.mocked(updateReadingAction).mockReset();
-    vi.mocked(updateReadingAction).mockResolvedValue(null);
+    vi.mocked(updateReadingAction).mockResolvedValue("Đã lưu.");
   });
 
   it("điền sẵn thông tin bài và từng câu", () => {
@@ -85,11 +85,18 @@ describe("ReadingEditForm", () => {
     ]);
   });
 
-  it("hiện lỗi trả về từ action", async () => {
+  it("hiện lỗi trả về từ action bằng màu cảnh báo", async () => {
     vi.mocked(updateReadingAction).mockResolvedValue("Không tìm thấy bài đọc.");
     render(<ReadingEditForm reading={bai} />);
     guiForm();
 
-    expect(await screen.findByText("Không tìm thấy bài đọc.")).toBeInTheDocument();
+    expect(await screen.findByText("Không tìm thấy bài đọc.")).toHaveClass("text-danger");
+  });
+
+  it("lưu xong thì báo Đã lưu. bằng màu thông tin", async () => {
+    render(<ReadingEditForm reading={bai} />);
+    guiForm();
+
+    expect(await screen.findByText("Đã lưu.")).toHaveClass("text-info");
   });
 });
