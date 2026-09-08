@@ -13,6 +13,7 @@ import { retryReadingJobAction } from "../../actions";
 export const metadata: Metadata = { title: "Sinh bài đọc bằng AI" };
 
 // Sinh đồng bộ trong một request: gọi LLM mất 20–40 giây nên phải nới trần mặc định 10 giây của Vercel.
+// Bài dài vẫn có thể vượt 60 giây; job bị cắt giữa chừng nằm mãi ở RUNNING và không có nút "Chạy lại".
 export const maxDuration = 60;
 
 const TRANG_THAI: Record<string, { nhan: string; mau: string }> = {

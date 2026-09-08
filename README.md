@@ -113,6 +113,7 @@ Sinh câu hỏi bằng AI cần các biến môi trường `LLM_BASE_URL`, `LLM_
 - Chưa có cách thu hồi quyền admin; role nằm trong JWT nên mọi thay đổi role chỉ có hiệu lực sau khi người dùng đăng nhập lại.
 - Nhà cung cấp LLM chưa thử lại khi gặp HTTP 503 (Gemini quá tải tạm thời); admin phải bấm "Chạy lại". Với key Gemini, dùng model `gemini-3.6-flash` (dòng 2.5 đã ngừng cho key mới).
 - Action sinh câu hỏi (`/admin/generate`) chưa có rate limit — admin bấm liên tục có thể tốn hạn mức LLM miễn phí nhanh hơn cần thiết.
+- Sinh nội dung chạy đồng bộ trong một request (`maxDuration = 60`). Bài đọc dài (~500 từ) có thể vượt trần: job bị cắt giữa chừng nằm mãi ở trạng thái `RUNNING` và bảng lịch sử không cho "Chạy lại" (chỉ job `FAILED` mới có nút). Cần đánh dấu job quá hạn thành `FAILED` hoặc chuyển sang chạy nền.
 
 ## Tài liệu
 

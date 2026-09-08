@@ -862,6 +862,17 @@ describe("importReadingAction", () => {
     expect(r).toMatchObject({ ok: true, published: true });
     expect(readingCreate.mock.calls[0][0].data).toMatchObject({ status: "PUBLISHED" });
   });
+
+  it("database hỏng thì báo trong form chứ không nổ ra ngoài", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    readingCreate.mockRejectedValue(new Error("Can't reach database server"));
+
+    await expect(importReadingAction(null, formNhapBaiDoc())).resolves.toEqual({
+      ok: false,
+      issues: ["Không nhập được bài đọc."],
+    });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
 });
 
 function chuanBiSinhBaiDoc() {
@@ -979,6 +990,7 @@ describe("retryReadingJobAction", () => {
   it("dùng lại params của job cũ để tạo job mới", async () => {
     jobFindUnique.mockResolvedValue({
       id: "j0",
+      type: "reading",
       params: { genre: "NEWS", level: "B1", length: "medium", topic: null },
     });
 
@@ -992,11 +1004,15 @@ describe("retryReadingJobAction", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/admin/readings/generate");
   });
 
-  it("job không tồn tại hoặc params hỏng thì im lặng bỏ qua", async () => {
+  it("job không tồn tại, sai loại hoặc params hỏng thì im lặng bỏ qua", async () => {
     jobFindUnique.mockResolvedValue(null);
     await expect(retryReadingJobAction(formChayLaiBaiDoc("khong-co"))).resolves.toBeUndefined();
 
-    jobFindUnique.mockResolvedValue({ id: "j0", params: { section: "toeic.p5", count: 3 } });
+    // Job sinh câu hỏi: đúng id nhưng sai loại, không được chạy lại thành bài đọc.
+    jobFindUnique.mockResolvedValue({ id: "j0", type: "questions", params: { section: "toeic.p5", count: 3 } });
+    await expect(retryReadingJobAction(formChayLaiBaiDoc("j0"))).resolves.toBeUndefined();
+
+    jobFindUnique.mockResolvedValue({ id: "j0", type: "reading", params: { genre: "SCI_FI" } });
     await expect(retryReadingJobAction(formChayLaiBaiDoc("j0"))).resolves.toBeUndefined();
 
     expect(jobCreate).not.toHaveBeenCalled();

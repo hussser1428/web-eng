@@ -28,13 +28,17 @@ const LEVEL_RULES: Record<ReadingLevel, string> = {
   C1: "C1: idiomatic and precise English, varied sentence rhythm, phrasal verbs, collocations and figurative language where they fit.",
 };
 
+/** Nguồn và giấy phép của mọi bài do AI viết; `generateReading` ép lại chứ không tin model. */
+export const AI_SOURCE_NAME = "AI (do hệ thống tạo)";
+export const AI_LICENSE = "Nội dung do AI tạo cho mục đích học tập";
+
 /** Ví dụ đầu ra để model bám theo; test chạy qua `readingFileSchema` để không lệch schema. */
 export const example: ReadingFile = {
   title: "The Cat Who Guarded the Bakery",
   genre: "FAIRY_TALE",
   level: "A2",
-  sourceName: "AI (do hệ thống tạo)",
-  license: "Nội dung do AI tạo cho mục đích học tập",
+  sourceName: AI_SOURCE_NAME,
+  license: AI_LICENSE,
   paragraphs: [
     [
       { en: "A thin cat lived behind a small bakery.", vi: "Một con mèo gầy sống sau một tiệm bánh nhỏ." },

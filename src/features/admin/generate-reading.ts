@@ -3,7 +3,7 @@ import type { LlmProvider } from "@/lib/providers/llm/types";
 import { importReading } from "@/features/reading/import-reading";
 import { readingFileSchema } from "@/features/reading/import-schema";
 import { askLlmJson, errorCode } from "./llm-json";
-import { buildReadingPrompt, type ReadingLength } from "./prompts/reading";
+import { AI_LICENSE, AI_SOURCE_NAME, buildReadingPrompt, type ReadingLength } from "./prompts/reading";
 
 export type GenerateReadingDb = Pick<PrismaClient, "generationJob" | "reading" | "readingSentence">;
 
@@ -56,6 +56,10 @@ export async function generateReading(
     // Model hay trả thể loại/độ khó khác yêu cầu; bộ lọc ở trang bài đọc dựa vào hai trường này.
     data.genre = input.genre;
     data.level = input.level;
+    // Nguồn do model tự khai không đáng tin: nó hay bịa tên báo, tên tác giả hoặc URL không tồn tại.
+    data.sourceName = AI_SOURCE_NAME;
+    data.license = AI_LICENSE;
+    data.sourceUrl = undefined;
 
     const imported = await importReading(db, data, { publish: false, source: "AI" });
     await db.generationJob.update({

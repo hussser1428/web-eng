@@ -357,9 +357,15 @@ export async function importReadingAction(
 
   // Checkbox không tích thì vắng mặt trong FormData; mặc định vào nháp để bài chưa duyệt không lên trang học.
   const publish = formData.get("publish") !== null;
-  const r = await importReading(prisma, parsed.data, { publish });
-  lamMoiBaiDoc(r.readingId);
-  return { ok: true, ...r, published: publish };
+  try {
+    const r = await importReading(prisma, parsed.data, { publish });
+    lamMoiBaiDoc(r.readingId);
+    return { ok: true, ...r, published: publish };
+  } catch (e) {
+    // Database hỏng thì báo trong form, đừng để lỗi nổ ra làm sập cả trang nhập.
+    console.error("importReadingAction", e);
+    return { ok: false, issues: ["Không nhập được bài đọc."] };
+  }
 }
 
 const sinhBaiDocSchema = z.object({
@@ -408,7 +414,10 @@ export async function retryReadingJobAction(formData: FormData): Promise<void> {
   if (!id) return;
 
   const job = await prisma.generationJob.findUnique({ where: { id } });
-  const parsed = sinhBaiDocSchema.safeParse(job?.params);
+  // Job sinh câu hỏi lọt vào đây thì params cũng khác hẳn, nhưng chặn theo type cho rõ ý.
+  if (job?.type !== "reading") return;
+
+  const parsed = sinhBaiDocSchema.safeParse(job.params);
   if (!parsed.success) return;
 
   await chaySinhBaiDoc(admin.id, parsed.data);

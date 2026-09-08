@@ -82,14 +82,28 @@ describe("generateReading", () => {
     expect(jobCreate.mock.calls[0][0].data.params).toMatchObject({ topic: null });
   });
 
-  it("ép genre/level theo input dù model trả khác", async () => {
+  it("ép genre/level và nguồn/giấy phép theo input dù model trả khác", async () => {
     const { db, readingCreate } = fakeDb();
     const { llm, generateJson } = fakeLlm();
-    generateJson.mockResolvedValue(payload({ genre: "NEWS", level: "C1" }));
+    generateJson.mockResolvedValue(
+      payload({
+        genre: "NEWS",
+        level: "C1",
+        sourceName: "Báo Tuổi Trẻ",
+        license: "CC BY 4.0",
+        sourceUrl: "https://khong-co-that.example.com/bai",
+      }),
+    );
 
     await generateReading(db, llm, input, { now });
 
-    expect(readingCreate.mock.calls[0][0].data).toMatchObject({ genre: "FAIRY_TALE", level: "A2" });
+    expect(readingCreate.mock.calls[0][0].data).toMatchObject({
+      genre: "FAIRY_TALE",
+      level: "A2",
+      sourceName: "AI (do hệ thống tạo)",
+      license: "Nội dung do AI tạo cho mục đích học tập",
+      sourceUrl: undefined,
+    });
   });
 
   it("FAILED khi JSON sai hai lần, không ghi bài", async () => {
