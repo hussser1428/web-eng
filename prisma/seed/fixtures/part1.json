@@ -1,0 +1,90 @@
+{
+  "certificate": "toeic",
+  "groups": [],
+  "questions": [
+    {
+      "section": "toeic.p1",
+      "choices": [
+        "A woman is writing on a whiteboard.",
+        "A group of people is seated around a conference table.",
+        "They're carrying chairs into the room.",
+        "The table has been cleared of papers."
+      ],
+      "answer": 1,
+      "explanation": "Ảnh cho thấy khoảng mười người ngồi quanh chiếc bàn họp dài, trước mặt là giấy tờ và cốc nước. Không có bảng trắng, không ai khiêng ghế, và giấy vẫn còn trên bàn. Ảnh: Wikimedia Commons, FEMA - 39202 - FEMA workers in a meeting in Puerto Rico.jpg, public domain.",
+      "skillTags": ["listening.detail"],
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/FEMA_-_39202_-_FEMA_workers_in_a_meeting_in_Puerto_Rico.jpg/1280px-FEMA_-_39202_-_FEMA_workers_in_a_meeting_in_Puerto_Rico.jpg",
+      "transcript": "A: A woman is writing on a whiteboard.\nB: A group of people is seated around a conference table.\nC: They're carrying chairs into the room.\nD: The table has been cleared of papers."
+    },
+    {
+      "section": "toeic.p1",
+      "choices": [
+        "A man is driving a forklift down the aisle.",
+        "Some workers are unloading a truck outside.",
+        "She's sealing a box with tape.",
+        "A woman is standing next to a box of packaged food."
+      ],
+      "answer": 3,
+      "explanation": "Trong kho hàng, một phụ nữ đeo khẩu trang và găng tay đứng cạnh thùng các-tông đầy thực phẩm đóng gói. Không có xe nâng, cảnh trong nhà chứ không phải dỡ hàng ngoài trời, và cô ấy không dán băng keo. Ảnh: Wikimedia Commons, Meals To You - PepsiCo - Qual Pac Food Box Team (20200813-FNS-LSC-1102).jpg, public domain.",
+      "skillTags": ["listening.detail"],
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Meals_To_You_-_PepsiCo_-_Qual_Pac_Food_Box_Team_%2820200813-FNS-LSC-1102%29.jpg/1280px-Meals_To_You_-_PepsiCo_-_Qual_Pac_Food_Box_Team_%2820200813-FNS-LSC-1102%29.jpg",
+      "transcript": "A: A man is driving a forklift down the aisle.\nB: Some workers are unloading a truck outside.\nC: She's sealing a box with tape.\nD: A woman is standing next to a box of packaged food."
+    },
+    {
+      "section": "toeic.p1",
+      "choices": [
+        "A woman is opening a bottle at the counter.",
+        "She's washing dishes in the sink.",
+        "A plate of food is being carried to a table.",
+        "Customers are waiting in line outside the door."
+      ],
+      "answer": 0,
+      "explanation": "Nhân viên phục vụ đứng sau quầy, hai tay mở nắp chai bên cạnh chiếc ly. Đĩa thức ăn nằm yên trên quầy chứ không được bưng đi, không có bồn rửa và cũng không có khách xếp hàng. Ảnh: Wikimedia Commons, Waitress Kenya.jpg, CC0.",
+      "skillTags": ["listening.detail"],
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Waitress_Kenya.jpg/1280px-Waitress_Kenya.jpg",
+      "transcript": "A: A woman is opening a bottle at the counter.\nB: She's washing dishes in the sink.\nC: A plate of food is being carried to a table.\nD: Customers are waiting in line outside the door."
+    },
+    {
+      "section": "toeic.p1",
+      "choices": [
+        "A man is climbing a ladder.",
+        "Some workers are painting a fence.",
+        "A worker is putting up a notice on a wall.",
+        "A helmet has been left on the ground."
+      ],
+      "answer": 2,
+      "explanation": "Một công nhân đội mũ bảo hộ, mặc áo phản quang, đang giơ tay dán tờ thông báo lên tấm vách công trường. Anh ta không leo thang, chỉ có một người chứ không phải nhóm sơn hàng rào, và mũ bảo hộ đang đội trên đầu. Ảnh: Wikimedia Commons, Worker putting notice on construction site wall in Sakuragaokachō.jpg, CC0.",
+      "skillTags": ["listening.detail"],
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Worker_putting_notice_on_construction_site_wall_in_Sakuragaokach%C5%8D.jpg/1280px-Worker_putting_notice_on_construction_site_wall_in_Sakuragaokach%C5%8D.jpg",
+      "transcript": "A: A man is climbing a ladder.\nB: Some workers are painting a fence.\nC: A worker is putting up a notice on a wall.\nD: A helmet has been left on the ground."
+    },
+    {
+      "section": "toeic.p1",
+      "choices": [
+        "A vendor is weighing fruit on a scale.",
+        "Vegetables are displayed on a table.",
+        "The market stall is being taken down.",
+        "People are eating at outdoor tables."
+      ],
+      "answer": 1,
+      "explanation": "Dưới mái che của quầy chợ, rau xanh, cà chua và củ quả được bày trên chiếc bàn phủ khăn. Không có cân, quầy vẫn đang dựng nguyên, và không ai ngồi ăn. Ảnh: Wikimedia Commons, 2012 USDA Farmers Market Opening (20120601-DM-LSC-0157).jpg, public domain.",
+      "skillTags": ["listening.detail"],
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/2012_USDA_Farmers_Market_Opening_%2820120601-DM-LSC-0157%29.jpg/1280px-2012_USDA_Farmers_Market_Opening_%2820120601-DM-LSC-0157%29.jpg",
+      "transcript": "A: A vendor is weighing fruit on a scale.\nB: Vegetables are displayed on a table.\nC: The market stall is being taken down.\nD: People are eating at outdoor tables."
+    },
+    {
+      "section": "toeic.p1",
+      "choices": [
+        "The train doors are opening.",
+        "A man is carrying a suitcase up the stairs.",
+        "Passengers are getting off a bus.",
+        "Some people are waiting on a platform."
+      ],
+      "answer": 3,
+      "explanation": "Nhiều hành khách đứng chờ trên sân ga tàu điện ngầm, phía sau là cửa chắn ke ga còn đóng kín. Chưa có tàu nên cửa chưa mở, người đàn ông đeo ba lô chứ không xách va li lên cầu thang, và đây là ga tàu chứ không phải xe buýt. Ảnh: Wikimedia Commons, Passengers Waiting Train at Kaohsiung Metro Zuoying Station 20170812.jpg, CC0.",
+      "skillTags": ["listening.detail"],
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Passengers_Waiting_Train_at_Kaohsiung_Metro_Zuoying_Station_20170812.jpg/1280px-Passengers_Waiting_Train_at_Kaohsiung_Metro_Zuoying_Station_20170812.jpg",
+      "transcript": "A: The train doors are opening.\nB: A man is carrying a suitcase up the stairs.\nC: Passengers are getting off a bus.\nD: Some people are waiting on a platform."
+    }
+  ]
+}
