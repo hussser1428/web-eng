@@ -31,3 +31,9 @@ export async function askLlmJson<T>(
   }
   throw new Error("LLM_BAD_JSON");
 }
+
+/** Mã lỗi để ghi vào `GenerationJob.error`; lỗi lạ thì gộp thành `LLM_UNAVAILABLE`. */
+export function errorCode(e: unknown): string {
+  const m = e instanceof Error ? e.message : "";
+  return /^[A-Z_]+(:.*)?$/.test(m) ? m : "LLM_UNAVAILABLE";
+}

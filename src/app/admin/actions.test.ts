@@ -17,6 +17,7 @@ const examQuestionCreateMany = vi.fn();
 const jobCreate = vi.fn();
 const jobUpdate = vi.fn();
 const jobFindUnique = vi.fn();
+const readingCreate = vi.fn();
 const readingFindUnique = vi.fn();
 const readingUpdate = vi.fn();
 const readingDelete = vi.fn();
@@ -41,6 +42,7 @@ vi.mock("@/lib/prisma", () => ({
       findUnique: (a: unknown) => jobFindUnique(a),
     },
     reading: {
+      create: (a: unknown) => readingCreate(a),
       findUnique: (a: unknown) => readingFindUnique(a),
       update: (a: unknown) => readingUpdate(a),
       delete: (a: unknown) => readingDelete(a),
@@ -74,6 +76,9 @@ import {
   setReadingStatusAction,
   deleteReadingAction,
   updateReadingAction,
+  importReadingAction,
+  generateReadingAction,
+  retryReadingJobAction,
 } from "./actions";
 
 function form(ids: string[], status: string) {
@@ -772,5 +777,228 @@ describe("hành động bài đọc", () => {
 
     expect(readingDelete).toHaveBeenCalledWith({ where: { id: "r1" } });
     expect(revalidatePath).toHaveBeenCalledWith("/admin/readings");
+  });
+});
+
+/** Bài đọc hợp lệ theo `readingFileSchema`: một đoạn hai câu. */
+const baiMau = {
+  title: "The Fox and the Grapes",
+  genre: "FAIRY_TALE",
+  level: "A2",
+  sourceName: "AI (do hệ thống tạo)",
+  license: "Nội dung do AI tạo cho mục đích học tập",
+  paragraphs: [
+    [
+      { en: "A fox saw grapes.", vi: "Cáo thấy chùm nho." },
+      { en: "They were too high.", vi: "Chúng ở quá cao." },
+    ],
+  ],
+};
+
+function formNhapBaiDoc(p: Record<string, string> = {}) {
+  const fd = new FormData();
+  fd.set("json", JSON.stringify(baiMau));
+  for (const [k, v] of Object.entries(p)) fd.set(k, v);
+  return fd;
+}
+
+describe("importReadingAction", () => {
+  beforeEach(() => {
+    authMock.mockReset();
+    readingCreate.mockReset();
+    sentenceCreateMany.mockReset();
+    revalidatePath.mockReset();
+    authMock.mockResolvedValue({ user: { id: "u1", role: "ADMIN" } });
+    readingCreate.mockResolvedValue({ id: "r1" });
+    sentenceCreateMany.mockResolvedValue({ count: 2 });
+  });
+
+  it("ném FORBIDDEN khi không phải admin", async () => {
+    authMock.mockResolvedValue({ user: { id: "u1", role: "USER" } });
+
+    await expect(importReadingAction(null, formNhapBaiDoc())).rejects.toThrow("FORBIDDEN");
+    expect(readingCreate).not.toHaveBeenCalled();
+  });
+
+  it("báo lỗi khi chưa dán nội dung", async () => {
+    const fd = new FormData();
+    fd.set("json", "   ");
+
+    await expect(importReadingAction(null, fd)).resolves.toEqual({ ok: false, issues: ["Chưa có nội dung JSON."] });
+    expect(readingCreate).not.toHaveBeenCalled();
+  });
+
+  it("báo lỗi khi JSON hỏng", async () => {
+    const r = await importReadingAction(null, formNhapBaiDoc({ json: "{ khong-phai-json" }));
+
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.issues[0]).toMatch(/^JSON không hợp lệ: /);
+    expect(readingCreate).not.toHaveBeenCalled();
+  });
+
+  it("liệt kê lỗi zod kèm đường dẫn trường", async () => {
+    const r = await importReadingAction(
+      null,
+      formNhapBaiDoc({ json: JSON.stringify({ ...baiMau, genre: "SCI_FI" }) }),
+    );
+
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.issues[0]).toMatch(/^genre: /);
+    expect(readingCreate).not.toHaveBeenCalled();
+  });
+
+  it("mặc định vào nháp, trả số câu và làm mới trang", async () => {
+    const r = await importReadingAction(null, formNhapBaiDoc());
+
+    expect(r).toEqual({ ok: true, readingId: "r1", sentences: 2, published: false });
+    expect(readingCreate.mock.calls[0][0].data).toMatchObject({ status: "DRAFT", source: "IMPORT" });
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/readings");
+    expect(revalidatePath).toHaveBeenCalledWith("/reading");
+  });
+
+  it("tích Đăng ngay thì lưu PUBLISHED", async () => {
+    const r = await importReadingAction(null, formNhapBaiDoc({ publish: "on" }));
+
+    expect(r).toMatchObject({ ok: true, published: true });
+    expect(readingCreate.mock.calls[0][0].data).toMatchObject({ status: "PUBLISHED" });
+  });
+});
+
+function chuanBiSinhBaiDoc() {
+  authMock.mockReset();
+  llmMock.mockReset();
+  generateJson.mockReset();
+  jobCreate.mockReset();
+  jobUpdate.mockReset();
+  jobFindUnique.mockReset();
+  readingCreate.mockReset();
+  sentenceCreateMany.mockReset();
+  revalidatePath.mockReset();
+  authMock.mockResolvedValue({ user: { id: "u1", role: "ADMIN" } });
+  llmMock.mockReturnValue({ generateJson });
+  generateJson.mockResolvedValue(baiMau);
+  jobCreate.mockResolvedValue({ id: "j1" });
+  jobUpdate.mockResolvedValue({});
+  readingCreate.mockResolvedValue({ id: "r1" });
+  sentenceCreateMany.mockResolvedValue({ count: 2 });
+}
+
+function formSinhBaiDoc(p: Record<string, string> = {}) {
+  const fd = new FormData();
+  for (const [k, v] of Object.entries({ genre: "FAIRY_TALE", level: "A2", length: "short", topic: "", ...p })) {
+    fd.set(k, v);
+  }
+  return fd;
+}
+
+describe("generateReadingAction", () => {
+  beforeEach(chuanBiSinhBaiDoc);
+
+  it("ném FORBIDDEN khi không phải admin", async () => {
+    authMock.mockResolvedValue({ user: { id: "u1", role: "USER" } });
+
+    await expect(generateReadingAction(null, formSinhBaiDoc())).rejects.toThrow("FORBIDDEN");
+    expect(jobCreate).not.toHaveBeenCalled();
+  });
+
+  it("báo chưa cấu hình khi thiếu LLM_API_KEY và không tạo job", async () => {
+    llmMock.mockReturnValue(null);
+
+    await expect(generateReadingAction(null, formSinhBaiDoc())).resolves.toBe("Chưa cấu hình LLM (LLM_API_KEY)");
+    expect(jobCreate).not.toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("từ chối thể loại, độ khó, độ dài lạ", async () => {
+    const loi = "Chọn thể loại, độ khó và độ dài hợp lệ.";
+    await expect(generateReadingAction(null, formSinhBaiDoc({ genre: "SCI_FI" }))).resolves.toBe(loi);
+    await expect(generateReadingAction(null, formSinhBaiDoc({ level: "Z9" }))).resolves.toBe(loi);
+    await expect(generateReadingAction(null, formSinhBaiDoc({ length: "huge" }))).resolves.toBe(loi);
+
+    expect(jobCreate).not.toHaveBeenCalled();
+  });
+
+  it("sinh xong thì lưu bài nháp nguồn AI, báo tên bài và làm mới trang", async () => {
+    await expect(generateReadingAction(null, formSinhBaiDoc({ topic: "một khu chợ" }))).resolves.toBe(
+      "Đã tạo bài nháp: The Fox and the Grapes",
+    );
+
+    expect(jobCreate.mock.calls[0][0].data).toMatchObject({
+      type: "reading",
+      status: "RUNNING",
+      createdById: "u1",
+      params: { genre: "FAIRY_TALE", level: "A2", length: "short", topic: "một khu chợ" },
+    });
+    expect(readingCreate.mock.calls[0][0].data).toMatchObject({ status: "DRAFT", source: "AI" });
+    expect(jobUpdate.mock.calls[0][0].data).toMatchObject({ status: "DONE", resultCount: 2 });
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/readings");
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/readings/generate");
+  });
+
+  it("ô chủ đề bỏ trống thì không ghim chủ đề nào", async () => {
+    await generateReadingAction(null, formSinhBaiDoc());
+
+    expect(jobCreate.mock.calls[0][0].data.params).toMatchObject({ topic: null });
+  });
+
+  it("đổi mã lỗi của LLM sang thông báo tiếng Việt", async () => {
+    // generateReading log nguyên lỗi ra server; nuốt đi cho output test sạch.
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    generateJson.mockRejectedValue(new Error("LLM_RATE_LIMITED"));
+    await expect(generateReadingAction(null, formSinhBaiDoc())).resolves.toBe("Hết hạn mức, thử lại sau vài phút");
+    expect(jobUpdate.mock.calls[0][0].data).toMatchObject({ status: "FAILED", error: "LLM_RATE_LIMITED" });
+
+    chuanBiSinhBaiDoc();
+    generateJson.mockResolvedValue({ khong: "phai-bai-doc" });
+    await expect(generateReadingAction(null, formSinhBaiDoc())).resolves.toBe(
+      "Model trả về JSON không hợp lệ, hãy thử lại",
+    );
+
+    chuanBiSinhBaiDoc();
+    generateJson.mockRejectedValue(new Error("LO_GI_DO"));
+    await expect(generateReadingAction(null, formSinhBaiDoc())).resolves.toBe("Sinh thất bại: LO_GI_DO");
+  });
+});
+
+describe("retryReadingJobAction", () => {
+  beforeEach(chuanBiSinhBaiDoc);
+
+  function formChayLaiBaiDoc(jobId: string) {
+    const fd = new FormData();
+    fd.set("jobId", jobId);
+    return fd;
+  }
+
+  it("ném FORBIDDEN khi không phải admin", async () => {
+    authMock.mockResolvedValue({ user: { id: "u1", role: "USER" } });
+
+    await expect(retryReadingJobAction(formChayLaiBaiDoc("j0"))).rejects.toThrow("FORBIDDEN");
+    expect(jobFindUnique).not.toHaveBeenCalled();
+  });
+
+  it("dùng lại params của job cũ để tạo job mới", async () => {
+    jobFindUnique.mockResolvedValue({
+      id: "j0",
+      params: { genre: "NEWS", level: "B1", length: "medium", topic: null },
+    });
+
+    await retryReadingJobAction(formChayLaiBaiDoc("j0"));
+
+    expect(jobFindUnique).toHaveBeenCalledWith({ where: { id: "j0" } });
+    expect(jobCreate.mock.calls[0][0].data).toMatchObject({
+      type: "reading",
+      params: { genre: "NEWS", level: "B1", length: "medium", topic: null },
+    });
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/readings/generate");
+  });
+
+  it("job không tồn tại hoặc params hỏng thì im lặng bỏ qua", async () => {
+    jobFindUnique.mockResolvedValue(null);
+    await expect(retryReadingJobAction(formChayLaiBaiDoc("khong-co"))).resolves.toBeUndefined();
+
+    jobFindUnique.mockResolvedValue({ id: "j0", params: { section: "toeic.p5", count: 3 } });
+    await expect(retryReadingJobAction(formChayLaiBaiDoc("j0"))).resolves.toBeUndefined();
+
+    expect(jobCreate).not.toHaveBeenCalled();
   });
 });

@@ -2,7 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 import type { LlmProvider } from "@/lib/providers/llm/types";
 import { importQuestions } from "@/features/questions/import-questions";
 import { questionFileSchema } from "@/features/questions/import-schema";
-import { askLlmJson } from "./llm-json";
+import { askLlmJson, errorCode } from "./llm-json";
 import { MAX_COUNT } from "./prompts/limits";
 import { buildPrompt, type PromptSection } from "./prompts";
 
@@ -24,12 +24,6 @@ export type GenerateResult = {
 };
 
 export { MAX_COUNT };
-
-/** Mã lỗi để ghi vào `GenerationJob.error`; lỗi lạ thì gộp thành `LLM_UNAVAILABLE`. */
-function errorCode(e: unknown): string {
-  const m = e instanceof Error ? e.message : "";
-  return /^[A-Z_]+(:.*)?$/.test(m) ? m : "LLM_UNAVAILABLE";
-}
 
 /**
  * Sinh câu hỏi Part 2–7 bằng LLM rồi nhập vào kho dưới dạng nháp (`DRAFT`, `source: "AI"`).

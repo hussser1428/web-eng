@@ -21,6 +21,8 @@ const TRANG: Array<{ ten: string; nap: () => Promise<{ default: Trang }>; props:
   { ten: "/admin/import", nap: () => import("./import/page"), props: {} },
   { ten: "/admin/exams", nap: () => import("./exams/page"), props: {} },
   { ten: "/admin/generate", nap: () => import("./generate/page"), props: {} },
+  { ten: "/admin/readings/import", nap: () => import("./readings/import/page"), props: {} },
+  { ten: "/admin/readings/generate", nap: () => import("./readings/generate/page"), props: {} },
 ];
 
 describe("mọi trang /admin tự gọi requireAdmin", () => {

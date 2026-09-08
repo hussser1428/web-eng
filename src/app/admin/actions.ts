@@ -14,7 +14,11 @@ import { generateAudio, MAX_TTS_ITEMS } from "@/features/admin/tts/generate-audi
 import { setQuestionStatus } from "@/features/admin/set-question-status";
 import { updateQuestion } from "@/features/admin/update-question";
 import { updateQuestionSchema } from "@/features/admin/update-question-schema";
+import { generateReading } from "@/features/admin/generate-reading";
 import { deleteReading } from "@/features/reading/admin/delete-reading";
+import { importReading } from "@/features/reading/import-reading";
+import { readingFileSchema } from "@/features/reading/import-schema";
+import { GENRES, LEVELS } from "@/features/reading/labels";
 import { setReadingStatus } from "@/features/reading/admin/set-reading-status";
 import { updateReading } from "@/features/reading/admin/update-reading";
 import { updateReadingSchema } from "@/features/reading/admin/update-reading-schema";
@@ -323,4 +327,89 @@ export async function updateReadingAction(_prev: string | null, formData: FormDa
 
   lamMoiBaiDoc(id);
   return null;
+}
+
+export type ImportReadingState =
+  | { ok: true; readingId: string; sentences: number; published: boolean }
+  | { ok: false; issues: string[] };
+
+/** Nhập một bài đọc song ngữ từ JSON dán hoặc tải lên. Mọi lỗi trả thành danh sách dòng, không ném ra ngoài. */
+export async function importReadingAction(
+  _prev: ImportReadingState | null,
+  formData: FormData,
+): Promise<ImportReadingState> {
+  await requireAdmin("action");
+
+  const text = String(formData.get("json") ?? "").trim();
+  if (!text) return { ok: false, issues: ["Chưa có nội dung JSON."] };
+
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch (e) {
+    return { ok: false, issues: [`JSON không hợp lệ: ${(e as Error).message}`] };
+  }
+
+  const parsed = readingFileSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, issues: parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`) };
+  }
+
+  // Checkbox không tích thì vắng mặt trong FormData; mặc định vào nháp để bài chưa duyệt không lên trang học.
+  const publish = formData.get("publish") !== null;
+  const r = await importReading(prisma, parsed.data, { publish });
+  lamMoiBaiDoc(r.readingId);
+  return { ok: true, ...r, published: publish };
+}
+
+const sinhBaiDocSchema = z.object({
+  genre: z.enum(GENRES),
+  level: z.enum(LEVELS),
+  length: z.enum(["short", "medium", "long"]),
+  // Ô để trống gửi lên chuỗi rỗng, params của job cũ lưu `null`: cả hai đều nghĩa là để model tự chọn chủ đề.
+  topic: z.string().trim().min(1).max(100).optional().catch(undefined),
+});
+
+/** Gọi LLM rồi đổi kết quả thành một dòng tiếng Việt. Dùng chung cho nút "Sinh" và nút "Chạy lại". */
+async function chaySinhBaiDoc(createdById: string, input: z.infer<typeof sinhBaiDocSchema>): Promise<string> {
+  const llm = getLlmProvider();
+  if (!llm) return "Chưa cấu hình LLM (LLM_API_KEY)";
+
+  const r = await generateReading(prisma, llm, { ...input, createdById });
+
+  // Làm mới cả khi thất bại: bảng lịch sử job đã có thêm dòng mới.
+  revalidatePath("/admin/readings");
+  revalidatePath("/admin/readings/generate");
+
+  if (r.status === "FAILED") return LOI_SINH[r.error ?? ""] ?? `Sinh thất bại: ${r.error}`;
+  return `Đã tạo bài nháp: ${r.title}`;
+}
+
+/** Sinh một bài đọc bằng LLM, kết quả vào nháp. Trả chuỗi thông báo cho `useActionState`. */
+export async function generateReadingAction(_prev: string | null, formData: FormData): Promise<string | null> {
+  const admin = await requireAdmin("action");
+
+  const parsed = sinhBaiDocSchema.safeParse({
+    genre: formData.get("genre"),
+    level: formData.get("level"),
+    length: formData.get("length"),
+    topic: formData.get("topic"),
+  });
+  if (!parsed.success) return "Chọn thể loại, độ khó và độ dài hợp lệ.";
+
+  return chaySinhBaiDoc(admin.id, parsed.data);
+}
+
+/** Chạy lại một job bài đọc hỏng bằng đúng tham số cũ (tạo job mới). Job lạ thì bỏ qua, không ném lỗi ra giao diện. */
+export async function retryReadingJobAction(formData: FormData): Promise<void> {
+  const admin = await requireAdmin("action");
+
+  const id = String(formData.get("jobId") ?? "");
+  if (!id) return;
+
+  const job = await prisma.generationJob.findUnique({ where: { id } });
+  const parsed = sinhBaiDocSchema.safeParse(job?.params);
+  if (!parsed.success) return;
+
+  await chaySinhBaiDoc(admin.id, parsed.data);
 }
