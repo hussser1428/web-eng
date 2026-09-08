@@ -1,4 +1,4 @@
-/** Danh sách kỹ năng cố định để câu sinh ra gắn tag thống nhất, dùng chung cho cả ba Part. */
+/** Danh sách kỹ năng cố định để câu sinh ra gắn tag thống nhất, dùng chung cho mọi Part. */
 export const SKILL_TAGS = [
   "grammar.tense",
   "grammar.preposition",
@@ -11,6 +11,10 @@ export const SKILL_TAGS = [
   "reading.detail",
   "reading.main-idea",
   "reading.vocabulary",
+  "listening.question-response",
+  "listening.detail",
+  "listening.inference",
+  "listening.gist",
 ] as const;
 
 /** Câu nhắc model chỉ dùng tag trong danh sách, hoặc bám một tag cụ thể. */

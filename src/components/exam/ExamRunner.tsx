@@ -26,7 +26,7 @@ function writeJson(key: string, value: unknown) {
 export function ExamRunner({ attempt, sections, timeLimits }: Props) {
   const router = useRouter();
   const qs = attempt.questions;
-  const K = useMemo(() => ({ answers: `attempt:${attempt.id}:answers`, flags: `attempt:${attempt.id}:flags`, reading: `attempt:${attempt.id}:readingStartedAt` }), [attempt.id]);
+  const K = useMemo(() => ({ answers: `attempt:${attempt.id}:answers`, flags: `attempt:${attempt.id}:flags`, reading: `attempt:${attempt.id}:readingStartedAt`, played: `attempt:${attempt.id}:played` }), [attempt.id]);
   const skillOf = useMemo(() => new Map(sections.map((s) => [s.id, s.skill])), [sections]);
   const nameOf = useMemo(() => new Map(sections.map((s) => [s.id, s.name])), [sections]);
 
@@ -40,6 +40,8 @@ export function ExamRunner({ attempt, sections, timeLimits }: Props) {
     return fromServer;
   });
   const [flags, setFlags] = useState<string[]>([]);
+  const [played, setPlayed] = useState<string[]>([]);
+  const playedSet = useMemo(() => new Set(played), [played]);
   const [readingStartedAt, setReadingStartedAt] = useState<number | null>(
     () => (listeningQs.length === 0 ? new Date(attempt.startedAt).getTime() : null),
   );
@@ -49,6 +51,7 @@ export function ExamRunner({ attempt, sections, timeLimits }: Props) {
   useEffect(() => {
     setAnswers((fromServer) => ({ ...fromServer, ...readJson<Record<string, number>>(K.answers, {}) }));
     setFlags(readJson<string[]>(K.flags, []));
+    setPlayed(readJson<string[]>(K.played, []));
     const saved = readJson<number | null>(K.reading, null);
     if (saved) setReadingStartedAt(saved);
     setHydrated(true);
@@ -87,6 +90,14 @@ export function ExamRunner({ attempt, sections, timeLimits }: Props) {
       return next;
     });
   }
+  function onAudioPlayed(src: string) {
+    setPlayed((p) => {
+      if (p.includes(src)) return p;
+      const next = [...p, src];
+      writeJson(K.played, next);
+      return next;
+    });
+  }
   function startReading() {
     const now = Date.now();
     writeJson(K.reading, now);
@@ -104,6 +115,7 @@ export function ExamRunner({ attempt, sections, timeLimits }: Props) {
       localStorage.removeItem(K.answers);
       localStorage.removeItem(K.flags);
       localStorage.removeItem(K.reading);
+      localStorage.removeItem(K.played);
       router.push(`/attempts/${attempt.id}/result`);
     } catch {
       setError("Không nộp được bài. Kiểm tra mạng rồi bấm Nộp bài lại; đáp án của bạn vẫn được giữ.");
@@ -138,7 +150,7 @@ export function ExamRunner({ attempt, sections, timeLimits }: Props) {
           {deadline !== null ? <ExamTimer deadline={deadline} onExpire={onExpire} /> : <span className="text-sm text-muted">Nghe theo audio</span>}
         </header>
 
-        <QuestionCard key={q.id} q={q} index={q.order} selected={answers[q.id] ?? null} onSelect={(i) => choose(q.id, i)} autoPlayAudio={phase === "listening"} />
+        <QuestionCard q={q} index={q.order} selected={answers[q.id] ?? null} onSelect={(i) => choose(q.id, i)} autoPlayAudio={phase === "listening"} playedAudio={playedSet} onAudioPlayed={onAudioPlayed} />
 
         <div className="flex flex-wrap items-center justify-between gap-2">
           <button type="button" onClick={() => toggleFlag(q.id)} className={`rounded-full border px-4 py-2 text-sm font-medium ${flags.includes(q.id) ? "border-amber-400 bg-amber-400/15 text-amber-300" : "border-line hover:bg-surface-2"}`}>

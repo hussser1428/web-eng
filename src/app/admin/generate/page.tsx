@@ -23,7 +23,7 @@ const TRANG_THAI: Record<string, { nhan: string; mau: string }> = {
 
 export default async function AdminGeneratePage() {
   await requireAdmin();
-  const jobs = await listJobs(prisma);
+  const jobs = await listJobs(prisma, { type: "questions" });
   const cert = getCertificate("toeic");
   const llmReady = getLlmProvider() !== null;
 
@@ -35,7 +35,8 @@ export default async function AdminGeneratePage() {
           Sinh câu hỏi bằng AI
         </h1>
         <p className="mt-2 text-muted">
-          Chỉ sinh được Part 5, 6, 7 (Part 1–4 cần audio và ảnh). Mỗi lô tối đa 10 câu, chờ khoảng 20–40 giây.
+          Sinh được Part 2–7. Part 2–4 sinh transcript, sau đó chọn câu ở trang Câu hỏi và bấm Tạo audio. Part 1 cần
+          ảnh nên nhập file. Mỗi lô tối đa 10 câu.
         </p>
       </header>
 

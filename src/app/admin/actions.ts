@@ -4,14 +4,24 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getLlmProvider } from "@/lib/providers/llm";
+import { getTtsProvider } from "@/lib/providers/tts";
 import { requireAdmin } from "@/lib/require-admin";
 import { getCertificate, getSection } from "@/features/certificates";
 import { buildExam } from "@/features/admin/build-exam";
 import { generateQuestions, MAX_COUNT } from "@/features/admin/generate-questions";
 import { setExamStatus } from "@/features/admin/set-exam-status";
+import { generateAudio, MAX_TTS_ITEMS } from "@/features/admin/tts/generate-audio";
 import { setQuestionStatus } from "@/features/admin/set-question-status";
 import { updateQuestion } from "@/features/admin/update-question";
 import { updateQuestionSchema } from "@/features/admin/update-question-schema";
+import { generateReading } from "@/features/admin/generate-reading";
+import { deleteReading } from "@/features/reading/admin/delete-reading";
+import { importReading } from "@/features/reading/import-reading";
+import { readingFileSchema } from "@/features/reading/import-schema";
+import { GENRES, LEVELS } from "@/features/reading/labels";
+import { setReadingStatus } from "@/features/reading/admin/set-reading-status";
+import { updateReading } from "@/features/reading/admin/update-reading";
+import { updateReadingSchema } from "@/features/reading/admin/update-reading-schema";
 import { importQuestions } from "@/features/questions/import-questions";
 import { questionFileSchema } from "@/features/questions/import-schema";
 
@@ -174,12 +184,12 @@ const LOI_SINH: Record<string, string> = {
   LLM_RATE_LIMITED: "Hết hạn mức, thử lại sau vài phút",
   LLM_BAD_JSON: "Model trả về JSON không hợp lệ, hãy thử lại",
   LLM_UNAVAILABLE: "Không gọi được LLM",
-  UNSUPPORTED_SECTION: "Chỉ hỗ trợ Part 5, 6, 7",
+  UNSUPPORTED_SECTION: "Chỉ hỗ trợ Part 2–7",
 };
 
 const sinhSchema = z.object({
-  // Part 1–4 cần audio/ảnh nên chưa sinh được; chặn ở đây thay vì để prompt ném lỗi.
-  section: z.enum(["toeic.p5", "toeic.p6", "toeic.p7"]),
+  // Part 1 cần ảnh nên chưa sinh được; chặn ở đây thay vì để prompt ném lỗi.
+  section: z.enum(["toeic.p2", "toeic.p3", "toeic.p4", "toeic.p5", "toeic.p6", "toeic.p7"]),
   count: z.coerce.number().int().min(1).max(MAX_COUNT),
   // Ô để trống gửi lên chuỗi rỗng, params của job cũ lưu `null`: cả hai đều nghĩa là không ghim kỹ năng.
   skillTag: z.string().trim().min(1).optional().catch(undefined),
@@ -210,7 +220,7 @@ export async function generateAction(_prev: string | null, formData: FormData): 
     count: formData.get("count"),
     skillTag: formData.get("skillTag"),
   });
-  if (!parsed.success) return "Chọn Part 5, 6 hoặc 7 và số câu từ 1 đến 10.";
+  if (!parsed.success) return "Chọn Part 2–7 và số câu từ 1 đến 10.";
 
   return chaySinh(admin.id, parsed.data);
 }
@@ -227,4 +237,202 @@ export async function retryJobAction(formData: FormData): Promise<void> {
   if (!parsed.success) return;
 
   await chaySinh(admin.id, parsed.data);
+}
+
+/** Bỏ phần "<id>: " ở đầu một dòng lỗi của `generateAudio`, giữ nguyên dòng nếu không có dấu phân cách. */
+function maLoi(dong: string | undefined): string {
+  if (!dong) return "TTS_UNAVAILABLE";
+  const i = dong.indexOf(": ");
+  return i < 0 ? dong : dong.slice(i + 2);
+}
+
+/** Tạo audio từ transcript cho các câu Listening đã tích chọn. Trả một dòng tổng kết cho `useActionState`. */
+export async function generateAudioAction(_prev: string | null, formData: FormData): Promise<string | null> {
+  await requireAdmin("action");
+
+  const ids = formData.getAll("ids").map(String);
+  if (ids.length === 0) return "Chưa chọn câu nào.";
+
+  const r = await generateAudio(prisma, getTtsProvider(), { ids });
+  revalidatePath("/admin/questions");
+
+  // Chỉ nêu mã lỗi đầu tiên: cả lô thường hỏng vì cùng một lý do, không cần liệt kê hết.
+  // Cắt sau dấu ": " đầu tiên (bỏ id câu), không dùng `split` vì mã lỗi tự nó có thể chứa ": ".
+  const loi = r.failed > 0 ? ` (${maLoi(r.errors[0])})` : "";
+  const thua = r.overflow > 0 ? ` Chỉ xử lý ${MAX_TTS_ITEMS} mục đầu.` : "";
+  return `Đã tạo audio cho ${r.done} mục, bỏ qua ${r.skipped} (đã có audio hoặc không có transcript), lỗi ${r.failed}${loi}.${thua}`;
+}
+
+/** Làm mới cả trang quản trị lẫn trang học của một bài đọc sau khi đổi nội dung hoặc trạng thái. */
+function lamMoiBaiDoc(id?: string) {
+  revalidatePath("/admin/readings");
+  revalidatePath("/reading");
+  if (id) {
+    revalidatePath(`/admin/readings/${id}`);
+    revalidatePath(`/reading/${id}`);
+  }
+}
+
+/** Đăng hoặc gỡ một bài đọc. Giá trị lạ thì bỏ qua, không đoán ý. */
+export async function setReadingStatusAction(formData: FormData): Promise<void> {
+  await requireAdmin("action");
+
+  const id = String(formData.get("id") ?? "");
+  const status = formData.get("status");
+  if (!id || (status !== "PUBLISHED" && status !== "DRAFT")) return;
+
+  try {
+    await setReadingStatus(prisma, { id, status });
+  } catch (e) {
+    if ((e as Error).message !== "NOT_FOUND") throw e;
+  }
+  lamMoiBaiDoc(id);
+}
+
+/** Xoá hẳn một bài đọc cùng các câu của nó. Bài đã biến mất thì im lặng, không bắt người dùng xử lý. */
+export async function deleteReadingAction(formData: FormData): Promise<void> {
+  await requireAdmin("action");
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  try {
+    await deleteReading(prisma, id);
+  } catch (e) {
+    if ((e as Error).message !== "NOT_FOUND") throw e;
+  }
+  lamMoiBaiDoc(id);
+}
+
+/** Lưu một bài đọc từ form sửa. Trả "Đã lưu." khi xong, hoặc thông báo lỗi tiếng Việt. */
+export async function updateReadingAction(_prev: string | null, formData: FormData): Promise<string | null> {
+  await requireAdmin("action");
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return "Thiếu mã bài đọc.";
+
+  // `paragraphs` do ReadingEditForm đóng gói thành JSON; JSON hỏng cũng là dữ liệu không hợp lệ.
+  let paragraphs: unknown;
+  try {
+    paragraphs = JSON.parse(String(formData.get("paragraphs") ?? ""));
+  } catch {
+    return "Dữ liệu không hợp lệ. Kiểm tra tiêu đề, nguồn, giấy phép và các câu.";
+  }
+
+  const parsed = updateReadingSchema.safeParse({
+    title: String(formData.get("title") ?? "").trim(),
+    genre: formData.get("genre"),
+    level: formData.get("level"),
+    sourceName: String(formData.get("sourceName") ?? "").trim(),
+    sourceUrl: chuoi(formData, "sourceUrl"),
+    license: String(formData.get("license") ?? "").trim(),
+    paragraphs,
+  });
+  if (!parsed.success) return "Dữ liệu không hợp lệ. Kiểm tra tiêu đề, nguồn, giấy phép và các câu.";
+
+  try {
+    await updateReading(prisma, id, parsed.data);
+  } catch (e) {
+    if ((e as Error).message === "NOT_FOUND") return "Không tìm thấy bài đọc.";
+    // Database hỏng thì thông báo chung không nói được gì; log lại để còn lần ra nguyên nhân.
+    console.error("updateReadingAction", e);
+    return "Không lưu được bài đọc.";
+  }
+
+  lamMoiBaiDoc(id);
+  return "Đã lưu.";
+}
+
+export type ImportReadingState =
+  | { ok: true; readingId: string; sentences: number; published: boolean }
+  | { ok: false; issues: string[] };
+
+/** Nhập một bài đọc song ngữ từ JSON dán hoặc tải lên. Mọi lỗi trả thành danh sách dòng, không ném ra ngoài. */
+export async function importReadingAction(
+  _prev: ImportReadingState | null,
+  formData: FormData,
+): Promise<ImportReadingState> {
+  await requireAdmin("action");
+
+  const text = String(formData.get("json") ?? "").trim();
+  if (!text) return { ok: false, issues: ["Chưa có nội dung JSON."] };
+
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch (e) {
+    return { ok: false, issues: [`JSON không hợp lệ: ${(e as Error).message}`] };
+  }
+
+  const parsed = readingFileSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, issues: parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`) };
+  }
+
+  // Checkbox không tích thì vắng mặt trong FormData; mặc định vào nháp để bài chưa duyệt không lên trang học.
+  const publish = formData.get("publish") !== null;
+  try {
+    const r = await importReading(prisma, parsed.data, { publish });
+    lamMoiBaiDoc(r.readingId);
+    return { ok: true, ...r, published: publish };
+  } catch (e) {
+    // Database hỏng thì báo trong form, đừng để lỗi nổ ra làm sập cả trang nhập.
+    console.error("importReadingAction", e);
+    return { ok: false, issues: ["Không nhập được bài đọc."] };
+  }
+}
+
+const sinhBaiDocSchema = z.object({
+  genre: z.enum(GENRES),
+  level: z.enum(LEVELS),
+  length: z.enum(["short", "medium", "long"]),
+  // Ô để trống gửi lên chuỗi rỗng, params của job cũ lưu `null`: cả hai đều nghĩa là để model tự chọn chủ đề.
+  topic: z.string().trim().min(1).max(100).optional().catch(undefined),
+});
+
+/** Gọi LLM rồi đổi kết quả thành một dòng tiếng Việt. Dùng chung cho nút "Sinh" và nút "Chạy lại". */
+async function chaySinhBaiDoc(createdById: string, input: z.infer<typeof sinhBaiDocSchema>): Promise<string> {
+  const llm = getLlmProvider();
+  if (!llm) return "Chưa cấu hình LLM (LLM_API_KEY)";
+
+  const r = await generateReading(prisma, llm, { ...input, createdById });
+
+  // Làm mới cả khi thất bại: bảng lịch sử job đã có thêm dòng mới.
+  revalidatePath("/admin/readings");
+  revalidatePath("/admin/readings/generate");
+
+  if (r.status === "FAILED") return LOI_SINH[r.error ?? ""] ?? `Sinh thất bại: ${r.error}`;
+  return `Đã tạo bài nháp: ${r.title}`;
+}
+
+/** Sinh một bài đọc bằng LLM, kết quả vào nháp. Trả chuỗi thông báo cho `useActionState`. */
+export async function generateReadingAction(_prev: string | null, formData: FormData): Promise<string | null> {
+  const admin = await requireAdmin("action");
+
+  const parsed = sinhBaiDocSchema.safeParse({
+    genre: formData.get("genre"),
+    level: formData.get("level"),
+    length: formData.get("length"),
+    topic: formData.get("topic"),
+  });
+  if (!parsed.success) return "Chọn thể loại, độ khó và độ dài hợp lệ.";
+
+  return chaySinhBaiDoc(admin.id, parsed.data);
+}
+
+/** Chạy lại một job bài đọc hỏng bằng đúng tham số cũ (tạo job mới). Job lạ thì bỏ qua, không ném lỗi ra giao diện. */
+export async function retryReadingJobAction(formData: FormData): Promise<void> {
+  const admin = await requireAdmin("action");
+
+  const id = String(formData.get("jobId") ?? "");
+  if (!id) return;
+
+  const job = await prisma.generationJob.findUnique({ where: { id } });
+  // Job sinh câu hỏi lọt vào đây thì params cũng khác hẳn, nhưng chặn theo type cho rõ ý.
+  if (job?.type !== "reading") return;
+
+  const parsed = sinhBaiDocSchema.safeParse(job.params);
+  if (!parsed.success) return;
+
+  await chaySinhBaiDoc(admin.id, parsed.data);
 }

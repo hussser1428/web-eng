@@ -9,6 +9,7 @@ const ADMIN_LINKS = [
   { href: "/admin/questions", label: "Câu hỏi" },
   { href: "/admin/import", label: "Nhập file" },
   { href: "/admin/exams", label: "Đề thi" },
+  { href: "/admin/readings", label: "Bài đọc" },
   { href: "/admin/generate", label: "Sinh bằng AI" },
 ];
 

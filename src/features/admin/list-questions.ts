@@ -1,4 +1,5 @@
 import type { ContentStatus, PrismaClient, QuestionSource } from "@prisma/client";
+import { TOEIC } from "@/features/certificates";
 
 export type ListQuestionsDb = Pick<PrismaClient, "question">;
 
@@ -24,9 +25,13 @@ export type QuestionFilter = {
   status?: ContentStatus;
   source?: QuestionSource;
   q?: string;
+  missingAudio?: boolean;
   page?: number;
   pageSize?: number;
 };
+
+/** Các phần thi có audio trong spec chứng chỉ hiện có (TOEIC Listening). */
+const AUDIO_SECTIONS = TOEIC.sections.filter((s) => s.hasAudio).map((s) => s.id);
 
 export type QuestionPage = { items: QuestionRow[]; total: number; page: number; pageSize: number };
 
@@ -51,10 +56,11 @@ export async function listQuestions(db: ListQuestionsDb, f: QuestionFilter): Pro
   const page = Math.max(1, Math.floor(f.page ?? 1));
   const where = {
     certificate: f.certificate ?? "toeic",
-    ...(f.section ? { section: f.section } : {}),
+    ...(f.section ? { section: f.section } : f.missingAudio ? { section: { in: AUDIO_SECTIONS } } : {}),
     ...(f.status ? { status: f.status } : {}),
     ...(f.source ? { source: f.source } : {}),
     ...(q ? { stem: { contains: q, mode: "insensitive" as const } } : {}),
+    ...(f.missingAudio ? { audioUrl: null, OR: [{ groupId: null }, { group: { audioUrl: null } }] } : {}),
   };
 
   const [rows, total] = await Promise.all([

@@ -1,4 +1,5 @@
 import type { PrismaClient, QuestionSource } from "@prisma/client";
+import { flattenParagraphs } from "./flatten";
 import type { ReadingFile } from "./import-schema";
 
 export type ImportReadingDb = Pick<PrismaClient, "reading" | "readingSentence">;
@@ -11,11 +12,7 @@ export async function importReading(
   opts: { publish: boolean; source?: QuestionSource },
 ): Promise<ImportReadingResult> {
   const status = opts.publish ? "PUBLISHED" : "DRAFT";
-
-  const rows = data.paragraphs.flatMap((paragraph, paragraphIndex) =>
-    paragraph.map((s) => ({ ...s, paragraphIndex })),
-  );
-  const wordCount = rows.reduce((sum, s) => sum + s.en.split(/\s+/).filter(Boolean).length, 0);
+  const { rows, wordCount } = flattenParagraphs(data.paragraphs);
 
   const reading = await db.reading.create({
     data: {
@@ -32,13 +29,7 @@ export async function importReading(
   });
 
   await db.readingSentence.createMany({
-    data: rows.map((s, i) => ({
-      readingId: reading.id,
-      order: i + 1,
-      paragraphIndex: s.paragraphIndex,
-      en: s.en,
-      vi: s.vi,
-    })),
+    data: rows.map((s) => ({ readingId: reading.id, ...s })),
   });
 
   return { readingId: reading.id, sentences: rows.length };

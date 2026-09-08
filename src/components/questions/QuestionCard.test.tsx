@@ -34,4 +34,19 @@ describe("QuestionCard", () => {
     await userEvent.click(screen.getByRole("radio", { name: /C\./ }));
     expect(onSelect).not.toHaveBeenCalled();
   });
+
+  const p2: QuestionForClient = { ...q, section: "toeic.p2", stem: "", group: null };
+
+  it("Part 2 chỉ hiện chữ cái khi chưa chấm", () => {
+    render(<QuestionCard q={p2} index={1} selected={null} onSelect={() => {}} />);
+    expect(screen.getByRole("radio", { name: "A" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "B" })).toBeInTheDocument();
+    expect(screen.queryByText("through")).not.toBeInTheDocument();
+  });
+
+  it("Part 2 hiện nội dung sau khi chấm", () => {
+    render(<QuestionCard q={p2} index={1} selected={0} onSelect={() => {}} reveal={{ answer: 1, explanation: "Vì..." }} />);
+    expect(screen.getByRole("radio", { name: /A\.\s*through/ })).toBeInTheDocument();
+    expect(screen.getByText("through")).toBeInTheDocument();
+  });
 });

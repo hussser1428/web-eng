@@ -109,3 +109,28 @@ describe("ExamRunner (đề có cả phần nghe và phần đọc)", () => {
     expect(JSON.parse(localStorage.getItem("attempt:a2:readingStartedAt")!)).toBeGreaterThan(0);
   });
 });
+
+describe("ExamRunner (audio nhóm phát một lần)", () => {
+  beforeEach(() => { localStorage.clear(); push.mockReset(); vi.restoreAllMocks(); });
+
+  it("chuyển câu trong cùng nhóm không tạo lại phần tử audio", async () => {
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+    const group = { id: "g1", passage: null, audioUrl: "https://example.com/group.mp3", imageUrl: null };
+    const grouped: AttemptForClient = {
+      ...attempt,
+      id: "a3",
+      questions: [
+        { ...q("l1", "toeic.p3", 1), group },
+        { ...q("l2", "toeic.p3", 2), group },
+      ],
+    };
+    const { container } = render(<ExamRunner attempt={grouped} sections={TOEIC.sections} timeLimits={TOEIC.timeLimits} />);
+    const audioEl = container.querySelector("audio");
+    if (!audioEl) throw new Error("không tìm thấy phần tử audio");
+
+    await userEvent.click(screen.getByRole("button", { name: "Câu tiếp" }));
+
+    expect(screen.getByText("Câu l2")).toBeInTheDocument();
+    expect(container.querySelector("audio")).toBe(audioEl);
+  });
+});

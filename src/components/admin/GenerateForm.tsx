@@ -6,8 +6,8 @@ import { SKILL_TAGS } from "@/features/admin/prompts/skill-tags";
 import { TOEIC } from "@/features/certificates";
 import { inputClass, labelClass, primaryButtonClass } from "@/components/layout/AuthCard";
 
-/** Part 1–4 cần audio/ảnh nên chưa sinh được bằng AI. */
-const PARTS = TOEIC.sections.filter((s) => ["toeic.p5", "toeic.p6", "toeic.p7"].includes(s.id));
+/** Part 1 cần ảnh nên chưa sinh được bằng AI; Part 2–4 sinh transcript rồi tạo audio ở trang Câu hỏi. */
+const PARTS = TOEIC.sections.filter((s) => s.id !== "toeic.p1");
 
 export function GenerateForm({ llmReady }: { llmReady: boolean }) {
   const [thongBao, action, dangChay] = useActionState(generateAction, null);
@@ -42,8 +42,9 @@ export function GenerateForm({ llmReady }: { llmReady: boolean }) {
       </label>
 
       <p className="text-sm text-muted">
-        Part 6 sinh theo đoạn 4 câu nên số câu thực tế được làm tròn thành 4 hoặc 8. Câu sinh ra vào nháp, phải duyệt
-        rồi mới đăng.
+        Part 2–4 sinh transcript, sau đó chọn câu ở trang Câu hỏi và bấm Tạo audio. Part 1 cần ảnh nên nhập file. Part
+        3, 4 sinh theo nhóm 3 câu và Part 6 theo đoạn 4 câu nên số câu thực tế được làm tròn. Câu sinh ra vào nháp,
+        phải duyệt rồi mới đăng.
       </p>
 
       {!llmReady && <p className="text-sm font-semibold text-danger">Chưa cấu hình LLM (LLM_API_KEY)</p>}
